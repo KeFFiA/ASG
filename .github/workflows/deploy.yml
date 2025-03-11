@@ -12,14 +12,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Deploy to Windows Server
-      uses: appleboy/ssh-action@v0.1.10
+    - name: Install SSH key
+      uses: webfactory/ssh-agent@v0.7.0
       with:
-        host: 88.128.18.36
-        username: ${{ secrets.WINDOWS_USER }}
-        password: ${{ secrets.WINDOWS_PASSWORD }}
-        script: |
-          cd C:\path\to\project
+        ssh-private-key: ${{ secrets.ASG_SERVER }}
+
+    - name: Deploy and Restart
+      run: |
+        ssh -o StrictHostKeyChecking=no Administrator@193.239.161.50 '
+          cd C:\ASGBuilds
           git pull origin master
-          docker-compose down
-          docker-compose up -d --build
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          Stop-Process -Name "python" -Force -ErrorAction SilentlyContinue
+          Start-Process python -ArgumentList "main.py" -WindowStyle Hidden
+        '

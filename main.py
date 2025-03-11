@@ -1,6 +1,6 @@
 import asyncio
 import os
-from contextlib import asynccontextmanager
+from datetime import datetime
 
 from DATABASE import check_and_create_table
 from DataProcessor import DataProcessor
@@ -14,16 +14,10 @@ from fastapi import FastAPI, HTTPException
 import asyncpg
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    asyncio.create_task(run_main())
-    yield
-
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
+app.state.start_time = None
 app.state.processing = False
 app.state.last_error = None
-app.state.db_connected = False
 
 
 async def check_db_connection():
@@ -41,12 +35,58 @@ async def check_db_connection():
         return False
 
 
+@app.post("/start")
+async def start():
+    if not app.state.processing:
+        asyncio.create_task(run_main())
+
+        app.state.start_time = datetime.now()
+
+        db_status = await check_db_connection()
+
+        status = {
+            "status": "ok",
+            "details": {
+                "start_time": app.state.start_time.strftime("%H:%M:%S"),
+                "database": "active" if db_status else "inactive",
+                "processing": "running" if app.state.processing else "idle"
+            }
+        }
+
+        if not db_status or app.state.last_error:
+            status["status"] = "error"
+            status["details"]["error"] = app.state.last_error
+            raise HTTPException(status_code=500, detail=status)
+
+        if not app.state.processing:
+            status["status"] = "warning"
+            status["details"]["message"] = "Processing not running"
+
+        return status
+
+    else:
+        db_status = await check_db_connection()
+
+        status = {
+            "status": "ok",
+            "details": {
+                "message": "Processing has already started",
+                "start_time": app.state.start_time.strftime("%H:%M:%S"),
+                "database": "active" if db_status else "inactive",
+                "processing": "running" if app.state.processing else "idle"
+            }
+        }
+
+        return status
+
+
 @app.get("/health")
 async def health_check():
     db_status = await check_db_connection()
     health_status = {
         "status": "ok",
         "details": {
+            "start_time": app.state.start_time.strftime("%H:%M:%S"),
             "database": "active" if db_status else "inactive",
             "processing": "running" if app.state.processing else "idle"
         }
@@ -99,6 +139,7 @@ async def run_main():
                 f"Start reprocessing {len(processor.errors['FAILED'])} files "
                 f"and {len(processor.errors['FAILED_DATA'])} records"
             )
+            await processor.retry_failed_insertions()
             app.state.processing = True
 
     except Exception as e:
