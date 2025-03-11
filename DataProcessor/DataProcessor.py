@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from FindPath import sync_async_method
 from Logger import logger
-from DATABASE import MyTable
+from DATABASE import ASGPassengersTable
 
 warnings.filterwarnings(
     'ignore',
@@ -146,26 +146,26 @@ class DataProcessor:
                         raise KeyError(f"Missing fields: {', '.join(missing_fields)}")
 
                     conditions = [
-                        MyTable.from_city == filtered_record['from_city'],
-                        MyTable.to_city == filtered_record['to_city'],
-                        MyTable.year == filtered_record['year'],
-                        MyTable.air_carrier == filtered_record['air_carrier'],
-                        MyTable.aircraft_type == filtered_record['aircraft_type']
+                        ASGPassengersTable.from_city == filtered_record['from_city'],
+                        ASGPassengersTable.to_city == filtered_record['to_city'],
+                        ASGPassengersTable.year == filtered_record['year'],
+                        ASGPassengersTable.air_carrier == filtered_record['air_carrier'],
+                        ASGPassengersTable.aircraft_type == filtered_record['aircraft_type']
                     ]
 
                     existing = await session.execute(
-                        select(MyTable).where(and_(*conditions))
+                        select(ASGPassengersTable).where(and_(*conditions))
                     )
                     existing = existing.scalar_one_or_none()
 
                     if existing:
                         await session.execute(
-                            update(MyTable)
+                            update(ASGPassengersTable)
                             .where(and_(*conditions))
                             .values(**filtered_record)
                         )
                     else:
-                        session.add(MyTable(**filtered_record))
+                        session.add(ASGPassengersTable(**filtered_record))
 
                 except KeyError as e:
                     logger.warning(f"Skipping record due to missing data: {e}. Data: {record}")

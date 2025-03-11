@@ -12,7 +12,7 @@ metadata = MetaData()
 Base = declarative_base()
 
 
-class MyTable(Base):
+class ASGPassengersTable(Base):
     __tablename__ = "PassengersFlow"
     id = Column(Integer, primary_key=True)
     from_city = Column(String, nullable=False)
