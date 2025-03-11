@@ -16,20 +16,17 @@ jobs:
       uses: webfactory/ssh-agent@v0.7.0
       with:
         ssh-private-key: ${{ secrets.ASG_SERVER }}
-        key-file: C:/Users/Administrator/.ssh/github-actions-key
+        key-file: C:\Users\Administrator\.ssh\github-actions-key
 
     - name: Configure SSH Environment
       run: |
-        # Create SSH directory
         New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.ssh"
         
-        # Add server fingerprint
         ssh-keyscan -t ed25519 193.239.161.50 | Out-File -Append -FilePath "$env:USERPROFILE\.ssh\known_hosts"
         
-        # Set key permissions
-        icacls "$env:USERPROFILE\.ssh\github-actions-key" /reset
-        icacls "$env:USERPROFILE\.ssh\github-actions-key" /grant:r "$env:USERNAME:(R)"
-        icacls "$env:USERPROFILE\.ssh\github-actions-key" /inheritance:r
+        icacls "C:\Users\Administrator\.ssh\github-actions-key" /reset
+        icacls "C:\Users\Administrator\.ssh\github-actions-key" /grant:r "$env:USERNAME:(R)"
+        icacls "C:\Users\Administrator\.ssh\github-actions-key" /inheritance:r
 
     - name: Deploy and Restart
       run: |
@@ -42,4 +39,4 @@ jobs:
             "start /B python main.py"
         )
         
-        ssh -i "$env:USERPROFILE\.ssh\github-actions-key" Administrator@193.239.161.50 "$($commands -join ' && ')"
+        ssh -i "C:\Users\Administrator\.ssh\github-actions-key" Administrator@193.239.161.50 "$($commands -join ' && ')"
