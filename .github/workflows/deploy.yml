@@ -2,44 +2,40 @@ name: Deploy to Windows Server
 
 on:
   push:
-    branches: [master]
+    branches: [ master ]
 
 jobs:
   deploy:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Add SSH Key
-      uses: appleboy/ssh-action@master
-      with:
-        host: 193.239.161.50
-        username: Administrator
-        key: ${{ secrets.ASG_SERVER }}
+      - name: Add SSH Key
+        uses: appleboy/ssh-action@master
+        with:
+          host: 193.239.161.50
+          username: Administrator
+          key: ${{ secrets.ASG_SERVER }}
 
-    - name: Configure known hosts
-      run: |
-        New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.ssh"
-        Add-Content -Path "$env:USERPROFILE\.ssh\known_hosts" -Value "193.239.161.50 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDJ6Y5J6Z7S8j7XQ9W6w8Kt7s1aPd7i0bZ5Yf3Gq9tZ"
+      - name: Configure known hosts
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.ssh"
+          Add-Content -Path "$env:USERPROFILE\.ssh\known_hosts" -Value "193.239.161.50 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDJ6Y5J6Z7S8j7XQ9W6w8Kt7s1aPd7i0bZ5Yf3Gq9tZ"
 
-    - name: Deploy and Restart Application
-      uses: appleboy/ssh-action@master
-      with:
-        host: 193.239.161.50
-        username: Administrator
-        key: ${{ secrets.ASG_SERVER }}
-        script: |
-          $commands = @(
-            "cd C:\ASGBuilds",
-            "git fetch origin master",
-            "git reset --hard origin/master",
-            "python -m pip install --upgrade pip",
-            "pip install -r requirements.txt",
-            "Stop-Process -Name python -Force -ErrorAction SilentlyContinue",
-            "Start-Process python -ArgumentList main.py -WindowStyle Hidden"
-          )
-      
-          $commandString = $commands -join " && "
-          ssh -o LogLevel=DEBUG -i $env:USERPROFILE\.ssh\github-actions-key Administrator@193.239.161.50 "$commandString"
+      - name: Deploy and Restart Application
+        uses: appleboy/ssh-action@master
+        with:
+          host: 193.239.161.50
+          username: Administrator
+          key: ${{ secrets.ASG_SERVER }}
+          script: |
+            '
+              cd C:\ASGBuilds
+              git pull origin master
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt
+              Stop-Process -Name "python" -Force -ErrorAction SilentlyContinue
+              Start-Process python -ArgumentList "main.py" -WindowStyle Hidden
+            '
