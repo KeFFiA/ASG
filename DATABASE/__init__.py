@@ -1,1 +1,1 @@
-from .InitialCreateDB import check_and_create_table, ASGPassengersTable
+from .InitialCreateDB import check_and_create_table, MyTable
