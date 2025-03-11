@@ -29,7 +29,7 @@ jobs:
           mkdir C:\ASGBuilds
 
           echo "⬇️ Клонирование нового кода..."
-          git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git C:\ASGBuilds
+          git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds
 
           echo "🐍 Установка зависимостей..."
           cd C:\ASGBuilds
