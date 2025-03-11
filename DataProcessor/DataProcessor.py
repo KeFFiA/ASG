@@ -156,7 +156,7 @@ class DataProcessor:
                     existing = await session.execute(
                         select(ASGPassengersTable).where(and_(*conditions))
                     )
-                    existing = existing.scalar_one_or_none()
+                    existing = existing.scalars().first()
 
                     if existing:
                         await session.execute(

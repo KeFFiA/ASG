@@ -1,0 +1,25 @@
+name: Deploy to Windows Server
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  deploy:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Deploy to Windows Server
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: 88.128.18.36
+        username: ${{ secrets.WINDOWS_USER }}
+        password: ${{ secrets.WINDOWS_PASSWORD }}
+        script: |
+          cd C:\path\to\project
+          git pull origin master
+          docker-compose down
+          docker-compose up -d --build
