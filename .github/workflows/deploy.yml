@@ -12,12 +12,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Add SSH Key
-        uses: appleboy/ssh-action@master
-        with:
-          host: 193.239.161.50
-          username: Administrator
-          key: ${{ secrets.ASG_SERVER }}
+#      - name: Add SSH Key
+#        uses: appleboy/ssh-action@master
+#        with:
+#          host: 193.239.161.50
+#          username: Administrator
+#          key: ${{ secrets.ASG_SERVER }}
 
       - name: Configure known hosts
         run: |
