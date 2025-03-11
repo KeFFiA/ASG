@@ -17,14 +17,6 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.ASG_SERVER }}
 
-    - name: Configure SSH
-      run: |
-        New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.ssh"
-        ssh-keyscan -t ed25519 193.239.161.50 | Out-File -Append "$env:USERPROFILE\.ssh\known_hosts"
-        icacls "$env:USERPROFILE\.ssh\github-actions-key" /reset
-        icacsls "$env:USERPROFILE\.ssh\github-actions-key" /grant:r "$env:USERNAME`:F
-        icacls "$env:USERPROFILE\.ssh\github-actions-key" /inheritance:r
-
     - name: Deploy Application
       run: |
         $commands = @(
