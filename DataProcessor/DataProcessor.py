@@ -9,6 +9,8 @@ import pandas as pd
 from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from tqdm import tqdm
+
+from FindPath import sync_async_method
 from Logger import logger
 from DATABASE import MyTable
 
@@ -26,7 +28,9 @@ class DataProcessor:
         self.semaphore = asyncio.Semaphore(max_workers)
         self.progress = None
         self.chunk_size = chunk_size
+        self.errors: dict = {'AC_PASSED': [], "FAILED": [], "FAILED_DATA": []}
 
+    @sync_async_method
     async def process_files(self, file_paths: list[str]):
         """Basic file processing method"""
 
@@ -43,6 +47,7 @@ class DataProcessor:
 
         await engine.dispose()
 
+    @sync_async_method
     async def _process_file(self, async_session, file_path: str):
         """Processing a single file"""
         async with self.semaphore:
@@ -68,7 +73,8 @@ class DataProcessor:
                 missing_columns = [col for col in required_columns if col not in df.columns.str.strip().str.lower()]
 
                 if missing_columns:
-                    logger.info(f"File {file_path} passed. Missing columns: {', '.join(missing_columns)}")
+                    logger.debug(f"File {file_path} passed. Missing columns: {', '.join(missing_columns)}")
+                    self.errors['AC_PASSED'].append(file_path)
                     self.progress.update(1)
                     return
 
@@ -88,8 +94,10 @@ class DataProcessor:
 
             except Exception as e:
                 logger.warning(f"File error {file_path}: {str(e)}", exc_info=True)
+                self.errors['FAILED'].append(file_path)
                 self.progress.update(1)
 
+    @sync_async_method
     async def _transform_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Data transformation from Excel to PassengersFlow table format"""
 
@@ -115,6 +123,7 @@ class DataProcessor:
 
         return df[valid_columns]
 
+    @sync_async_method
     async def _insert_to_db(self, session, records: list[dict]):
         """Batch insert/update into DataBase"""
         if not records:
@@ -122,37 +131,81 @@ class DataProcessor:
 
         try:
             for record in records:
-                valid_fields = {
-                    'from_city', 'to_city', 'year',
-                    'air_carrier', 'aircraft_type',
-                    'prt', 'seats_available', 'pof'
-                }
-                filtered_record = {k: v for k, v in record.items() if k in valid_fields}
+                try:
+                    valid_fields = {
+                        'from_city', 'to_city', 'year',
+                        'air_carrier', 'aircraft_type',
+                        'prt', 'seats_available', 'pof'
+                    }
+                    filtered_record = {k: v for k, v in record.items() if k in valid_fields}
 
-                conditions = [
-                    MyTable.from_city == filtered_record['from_city'],
-                    MyTable.to_city == filtered_record['to_city'],
-                    MyTable.year == filtered_record['year'],
-                    MyTable.air_carrier == filtered_record['air_carrier'],
-                    MyTable.aircraft_type == filtered_record['aircraft_type']
-                ]
+                    required_fields = {'from_city', 'to_city', 'year', 'air_carrier', 'aircraft_type'}
+                    missing_fields = [field for field in required_fields if field not in filtered_record]
 
-                existing = await session.execute(
-                    select(MyTable).where(and_(*conditions))
-                )
-                existing = existing.scalar_one_or_none()
+                    if missing_fields:
+                        raise KeyError(f"Missing fields: {', '.join(missing_fields)}")
 
-                if existing:
-                    await session.execute(
-                        update(MyTable)
-                        .where(and_(*conditions))
-                        .values(**filtered_record)
+                    conditions = [
+                        MyTable.from_city == filtered_record['from_city'],
+                        MyTable.to_city == filtered_record['to_city'],
+                        MyTable.year == filtered_record['year'],
+                        MyTable.air_carrier == filtered_record['air_carrier'],
+                        MyTable.aircraft_type == filtered_record['aircraft_type']
+                    ]
+
+                    existing = await session.execute(
+                        select(MyTable).where(and_(*conditions))
                     )
-                else:
-                    session.add(MyTable(**filtered_record))
+                    existing = existing.scalar_one_or_none()
+
+                    if existing:
+                        await session.execute(
+                            update(MyTable)
+                            .where(and_(*conditions))
+                            .values(**filtered_record)
+                        )
+                    else:
+                        session.add(MyTable(**filtered_record))
+
+                except KeyError as e:
+                    logger.warning(f"Skipping record due to missing data: {e}. Data: {record}")
+                    self.errors["FAILED_DATA"].append(record)
 
             await session.commit()
 
         except Exception as e:
             await session.rollback()
             logger.critical(f"Critical DB error: {str(e)}", exc_info=True)
+
+    @sync_async_method
+    async def retry_failed_insertions(self, async_session):
+        """Reprocessing files and data not inserted into the database"""
+
+        if not self.errors["FAILED"] and not self.errors["FAILED_DATA"]:
+            logger.info("No failed records to reprocess.")
+            return
+
+        failed_files = self.errors["FAILED"][:]
+        self.errors["FAILED"].clear()
+
+        for file_path in failed_files:
+            try:
+                await self._process_file(async_session, file_path)
+            except Exception as e:
+                logger.warning(f"Repeated error while processing file {file_path}: {e}")
+                self.errors["FAILED"].append(file_path)
+
+        failed_data = self.errors["FAILED_DATA"][:]
+        self.errors["FAILED_DATA"].clear()
+
+        async with async_session() as session:
+            for entry in failed_data:
+                try:
+                    data = entry["data"]
+                    await self._insert_to_db(session, [data])
+                except Exception as e:
+                    logger.warning(f"Error while re-inserting data: {e}. Data: {data}")
+                    self.errors["FAILED_DATA"].append(data)
+
+        logger.info(
+            f"Reprocessing completed. Remaining {len(self.errors['FAILED'])} files and {len(self.errors['FAILED_DATA'])} records")

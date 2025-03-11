@@ -26,6 +26,15 @@ async def main():
     await processor.process_files(file_paths=files_list)
     logger.info("Data processor loop completed")
 
+    logger.info(f"Data processor loop status: \nFiles passed(air carriers) count: {len(processor.errors['AC_PASSED'])}\n"
+                f"Files with errors: {len(processor.errors['FAILED'])}\n {processor.errors['FAILED']}\n"
+                f"Data with errors: {len(processor.errors['FAILED_DATA'])}\n {processor.errors['FAILED_DATA']}\n")
+
+    if len(processor.errors['FAILED_DATA']) > 0 or len(processor.errors['FAILED']) > 0:
+        logger.info(
+            f"Start reprocessing {len(processor.errors['FAILED'])} files and {len(processor.errors['FAILED_DATA'])} records")
+        await processor.retry_failed_insertions()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
