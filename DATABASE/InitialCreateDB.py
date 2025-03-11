@@ -51,6 +51,6 @@ async def check_and_create_table():
                         )
                     """))
         except Exception as e:
-            logger.critical(f"Index creation warning: {str(e)}", exc_info=True)
+            logger.warning(f"Index creation warning: {str(e)}")
 
     logger.info("Database initialization complete")
