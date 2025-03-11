@@ -21,7 +21,7 @@ jobs:
       run: |
         New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.ssh"
         ssh-keyscan -t ed25519 193.239.161.50 | Out-File -Append "$env:USERPROFILE\.ssh\known_hosts"
-        icacls "$env:USERPROFILE\.ssh\id_rsa" /reset /grant:r "$env:USERNAME:(R)"
+        icacls "$env:USERPROFILE\.ssh\github-actions-key" /reset /grant:r "$env:USERNAME:(R)"
 
     - name: Deploy Application
       run: |
