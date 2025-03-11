@@ -13,9 +13,11 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Add SSH Key
-      uses: webfactory/ssh-agent@v0.7.0
+      uses: appleboy/ssh-action@master
       with:
-        ssh-private-key: ${{ secrets.ASG_SERVER }}
+        host: 193.239.161.50
+        username: Administrator
+        key: ${{ secrets.ASG_SERVER }}
 
     - name: Configure known hosts
       run: |
@@ -23,16 +25,21 @@ jobs:
         Add-Content -Path "$env:USERPROFILE\.ssh\known_hosts" -Value "193.239.161.50 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDJ6Y5J6Z7S8j7XQ9W6w8Kt7s1aPd7i0bZ5Yf3Gq9tZ"
 
     - name: Deploy and Restart Application
-      run: |
-        $commands = @(
-          "cd C:\ASGBuilds",
-          "git fetch origin master",
-          "git reset --hard origin/master",
-          "python -m pip install --upgrade pip",
-          "pip install -r requirements.txt",
-          "Stop-Process -Name python -Force -ErrorAction SilentlyContinue",
-          "Start-Process python -ArgumentList main.py -WindowStyle Hidden"
-        )
-    
-        $commandString = $commands -join " && "
-        ssh -o LogLevel=DEBUG -i $env:USERPROFILE\.ssh\github-actions-key Administrator@193.239.161.50 "$commandString"
+      uses: appleboy/ssh-action@master
+      with:
+        host: 193.239.161.50
+        username: Administrator
+        key: ${{ secrets.ASG_SERVER }}
+        script: |
+          $commands = @(
+            "cd C:\ASGBuilds",
+            "git fetch origin master",
+            "git reset --hard origin/master",
+            "python -m pip install --upgrade pip",
+            "pip install -r requirements.txt",
+            "Stop-Process -Name python -Force -ErrorAction SilentlyContinue",
+            "Start-Process python -ArgumentList main.py -WindowStyle Hidden"
+          )
+      
+          $commandString = $commands -join " && "
+          ssh -o LogLevel=DEBUG -i $env:USERPROFILE\.ssh\github-actions-key Administrator@193.239.161.50 "$commandString"
