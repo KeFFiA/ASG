@@ -17,13 +17,21 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.ASG_SERVER }}
 
+    - name: Test Connection
+      run: ssh Administrator@193.239.161.50 "hostname"
+
+    - name: Check Directory
+      run: ssh Administrator@193.239.161.50 "dir C:\ASGBuilds"
+
     - name: Deploy and Restart
       run: |
-        ssh -o StrictHostKeyChecking=no Administrator@193.239.161.50 '
-          cd C:\ASGBuilds
-          git pull origin master
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          Stop-Process -Name "python" -Force -ErrorAction SilentlyContinue
-          Start-Process python -ArgumentList "main.py" -WindowStyle Hidden
-        '
+        $commands = @(
+        "cd C:\ASGBuilds",
+        "git config --global core.askPass false",
+        "git pull origin master",
+        "python -m pip install --upgrade pip",
+        "pip install -r requirements.txt",
+        "Stop-Process -Name python -Force -ErrorAction SilentlyContinue",
+        "Start-Process python -ArgumentList main.py -WindowStyle Hidden"
+        )
+        ssh -o LogLevel=DEBUG -o StrictHostKeyChecking=no Administrator@193.239.161.50 "$($commands -join '; ')"
