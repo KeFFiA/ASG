@@ -23,9 +23,6 @@ jobs:
         Add-Content -Path "$env:USERPROFILE\.ssh\known_hosts" -Value "193.239.161.50 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDJ6Y5J6Z7S8j7XQ9W6w8Kt7s1aPd7i0bZ5Yf3Gq9tZ"
 
     - name: Deploy and Restart Application
-      uses: webfactory/ssh-agent@v0.7.0
-      with:
-        ssh-private-key: ${{ secrets.ASG_SERVER }}
       run: |
         $commands = @(
           "cd C:\ASGBuilds",
