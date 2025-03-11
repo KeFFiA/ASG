@@ -18,7 +18,7 @@ jobs:
       with:
         host: 193.239.161.50
         username: Administrator
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        key: ${{ secrets.ASG_SERVER }}
         script: |
           echo "🛑 Остановка старого сервиса..."
           sc stop ASGService || echo "Сервис уже остановлен"
