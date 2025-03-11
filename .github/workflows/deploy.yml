@@ -9,29 +9,27 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Install SSH key
-      uses: webfactory/ssh-agent@v0.7.0
-      with:
-        ssh-private-key: ${{ secrets.ASG_SERVER }}
+      - name: Install SSH key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.ASG_SERVER }}
 
-#    - name: Test Connection
-#      run: ssh Administrator@193.239.161.50 "hostname"
-#
-#    - name: Check Directory
-#      run: ssh Administrator@193.239.161.50 "dir C:\ASGBuilds"
+      - name: Add known hosts
+        run: |
+          mkdir -p ~/.ssh
+          echo "193.239.161.50 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDJ6Y5J6Z7S8j7XQ9W6w8Kt7s1aPd7i0bZ5Yf3Gq9tZ" >> ~/.ssh/known_hosts
 
-    - name: Deploy and Restart
-      run: |
-        $commands = @(
-        "cd C:\ASGBuilds",
-        "git config --global core.askPass false",
-        "git pull origin master",
-        "python -m pip install --upgrade pip",
-        "pip install -r requirements.txt",
-        "Stop-Process -Name python -Force -ErrorAction SilentlyContinue",
-        "Start-Process python -ArgumentList main.py -WindowStyle Hidden"
-        )
-        ssh -o LogLevel=DEBUG -o StrictHostKeyChecking=no Administrator@193.239.161.50 "$($commands -join '; ')"
+      - name: Deploy and Restart
+        run: |
+          $env:GIT_SSH_COMMAND = "ssh -vvv -i C:/Users/runneradmin/.ssh/id_rsa"
+          ssh -i C:/Users/runneradmin/.ssh/id_rsa Administrator@193.239.161.50 @'
+            cd C:\ASGBuilds
+            git pull origin master
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
+            Stop-Process -Name "python" -Force -ErrorAction SilentlyContinue
+            Start-Process python -ArgumentList "main.py" -WindowStyle Hidden
+          '@
