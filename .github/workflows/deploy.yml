@@ -2,40 +2,44 @@ name: Deploy to Windows Server
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   deploy:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-#      - name: Add SSH Key
-#        uses: appleboy/ssh-action@master
-#        with:
-#          host: 193.239.161.50
-#          username: Administrator
-#          key: ${{ secrets.ASG_SERVER }}
+    - name: Setup SSH Key
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.ASG_SERVER }}
+        key-file: C:/Users/Administrator/.ssh/github-actions-key
 
-      - name: Configure known hosts
-        run: |
-          New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.ssh"
-          Add-Content -Path "$env:USERPROFILE\.ssh\known_hosts" -Value "193.239.161.50 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDJ6Y5J6Z7S8j7XQ9W6w8Kt7s1aPd7i0bZ5Yf3Gq9tZ"
+    - name: Configure SSH Environment
+      run: |
+        # Create SSH directory
+        New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.ssh"
+        
+        # Add server fingerprint
+        ssh-keyscan -t ed25519 193.239.161.50 | Out-File -Append -FilePath "$env:USERPROFILE\.ssh\known_hosts"
+        
+        # Set key permissions
+        icacls "$env:USERPROFILE\.ssh\github-actions-key" /reset
+        icacls "$env:USERPROFILE\.ssh\github-actions-key" /grant:r "$env:USERNAME:(R)"
+        icacls "$env:USERPROFILE\.ssh\github-actions-key" /inheritance:r
 
-      - name: Deploy and Restart Application
-        uses: appleboy/ssh-action@master
-        with:
-          host: 193.239.161.50
-          username: Administrator
-          key: ${{ secrets.ASG_SERVER }}
-          script: |
-            '
-              cd C:\ASGBuilds
-              git pull origin master
-              python -m pip install --upgrade pip
-              pip install -r requirements.txt
-              Stop-Process -Name "python" -Force -ErrorAction SilentlyContinue
-              Start-Process python -ArgumentList "main.py" -WindowStyle Hidden
-            '
+    - name: Deploy and Restart
+      run: |
+        $commands = @(
+            "cd C:\ASGBuilds",
+            "git pull origin master",
+            "python -m pip install --upgrade pip",
+            "pip install -r requirements.txt",
+            "taskkill /IM python.exe /F /T",
+            "start /B python main.py"
+        )
+        
+        ssh -i "$env:USERPROFILE\.ssh\github-actions-key" Administrator@193.239.161.50 "$($commands -join ' && ')"
