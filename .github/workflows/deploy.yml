@@ -45,4 +45,4 @@ jobs:
             "sc start ASGService",
             "echo '✅ Деплой завершен!'"
         )
-        ssh -i "$env:USERPROFILE\.ssh\id_rsa" Administrator@193.239.161.50 "$($commands -join '; ')"
+        ssh -i "$env:USERPROFILE\.ssh\github-actions-key" Administrator@193.239.161.50 "$($commands -join '; ')"
