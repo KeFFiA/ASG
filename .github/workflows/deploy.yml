@@ -17,11 +17,11 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.ASG_SERVER }}
 
-    - name: Test Connection
-      run: ssh Administrator@193.239.161.50 "hostname"
-
-    - name: Check Directory
-      run: ssh Administrator@193.239.161.50 "dir C:\ASGBuilds"
+#    - name: Test Connection
+#      run: ssh Administrator@193.239.161.50 "hostname"
+#
+#    - name: Check Directory
+#      run: ssh Administrator@193.239.161.50 "dir C:\ASGBuilds"
 
     - name: Deploy and Restart
       run: |
