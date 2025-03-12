@@ -3,3 +3,5 @@
 @echo off
 
 C:\ASGBuilds\ICAO\venv\Scripts\python.exe C:\ASGBuilds\ICAO\main.py
+
+pause
