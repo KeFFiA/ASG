@@ -54,8 +54,8 @@ jobs:
           script: >
             echo "Deploying on Windows..." ^
             && echo "Killing python proccess..." ^
-            && taskkill /IM python.exe /F /T 2>nul || echo "No python.exe process found" ^
-            && taskkill /IM pythonw.exe /F /T 2>nul || echo "No pythonw.exe process found" ^
+            && wmic process where "name='python.exe'" delete ^
+            && wmic process where "name='pythonw.exe'" delete ^
             && echo "Python proccess killed. Deleting old directory..." ^
             && rmdir /s /q C:\ASGBuilds\ICAO 2>nul ^
             && echo "Deleting success. Creating new directory..." ^
