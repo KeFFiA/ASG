@@ -71,7 +71,7 @@ jobs:
             && setx DATABASE_URL "postgresql+asyncpg://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M ^
             && setx DATABASE_URL_TEST "postgresql://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M ^
             && echo "Enviroment variables created. Creating startup task..." ^
-            && schtasks /create /tn "ASG Python Service" /tr "C:\ASGBuilds\ICAO\venv\Scripts\pythonw.exe C:\ASGBuilds\ICAO\main.py" /sc onstart /ru SYSTEM /f ^
+            && schtasks /create /tn "ASG Python Service" /tr "C:\ASGBuilds\ICAO\start.bat" /sc onstart /ru SYSTEM /f ^
             && echo "Startup task created." ^
             && C:\ASGBuilds\ICAO\start.bat ^
             && echo "Deploy complete!"
