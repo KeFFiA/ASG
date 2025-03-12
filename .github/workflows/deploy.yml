@@ -54,9 +54,10 @@ jobs:
           script: >
             echo "Deploying on Windows..." ^
             && echo "Killing python proccess..." ^
-            && taskkill /IM python.exe /F /T 2>nul ^&^& taskkill /IM pythonw.exe /F /T 2>nul ^
+            && taskkill /IM python.exe /F /T 2>nul ^
+            && taskkill /IM pythonw.exe /F /T 2>nul ^
             && echo "Python proccess killed. Deleting old directory..." ^
-            && (if exist C:\ASGBuilds\ICAO rmdir /s /q C:\ASGBuilds\ICAO 2>nul) ^
+            && rmdir /s /q C:\ASGBuilds\ICAO 2>nul ^
             && echo "Deleting success. Creating new directory..." ^
             && mkdir C:\ASGBuilds\ICAO ^
             && echo "Cloning repository into C:\ASGBuilds\ICAO"
