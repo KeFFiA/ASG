@@ -37,5 +37,5 @@ jobs:
             echo "Creating service..."
             sc create ASGService binPath= "C:\ASGBuilds\venv\Scripts\python.exe C:\ASGBuilds\main.py" start= auto
             
-            echo "Starting service..."
+            echo "Starting service...."
             sc start ASGService
