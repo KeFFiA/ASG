@@ -6,9 +6,34 @@ on:
       - master
 
 jobs:
+  check-connection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check SSH Key exists
+        run: test -n "${{ secrets.SSH_PRIVATE_KEY }}" && echo "Key exists" || echo "Key is empty"
+
+      - name: Test connection
+        id: ssh_test
+        uses: appleboy/ssh-action@master
+        with:
+          host: 193.239.161.50
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "Connection successful"
+
+      - name: Check connection result
+        run: |
+          if [ "${{ steps.ssh_test.outcome }}" == "success" ]; then
+            echo "Connection successful"
+          else
+            echo "Connection failed"
+            exit 1
+          fi
+
   deploy:
     runs-on: ubuntu-latest
-
+    needs: check-connection
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
