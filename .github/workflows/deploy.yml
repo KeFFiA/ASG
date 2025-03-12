@@ -49,14 +49,11 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            if command uname > /dev/null; then
+            if exist C:\Windows\System32\systeminfo.exe (
+              echo "OS=windows" >> %GITHUB_ENV%
+            ) else (
               echo "OS=linux" >> $GITHUB_ENV
-            elif command systeminfo > /dev/null; then
-              echo "OS=windows" >> $GITHUB_ENV
-            else
-              echo "Unknown OS"
-              exit 1
-            fi
+            )
 
       - name: Deploy to Windows Server
         if: env.OS == 'windows'
