@@ -51,7 +51,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: >
+          script: |
             echo "Deploying on Windows..." ^
             && echo "Deleting old directory..." ^
             && rmdir /s /q C:\ASGBuilds\ICAO 2>nul ^
