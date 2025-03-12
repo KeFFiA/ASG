@@ -50,6 +50,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            echo "Starting check Server OS"
             if exist C:\Windows\System32\systeminfo.exe (
               echo "OS=windows" >> %GITHUB_ENV
             ) else (
