@@ -51,26 +51,18 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: >
-            echo "Deploying on Windows..." ^
-            && echo "Deleting old directory..." ^
-            && rmdir /s /q C:\ASGBuilds\ICAO 2>nul ^
-            && echo "Deleting success. Creating new directory..." ^
-            && mkdir C:\ASGBuilds\ICAO ^
-            && echo "Cloning repository into C:\ASGBuilds\ICAO"
-            && git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds\ICAO ^
-            && echo "Successfully cloned. Activating venv..." ^
-            && python -m venv C:\ASGBuilds\ICAO\venv ^
-            && call C:\ASGBuilds\venv\Scripts\activate ^
-            && echo "Venv successfully activated. Installing requirements..." ^
-            && C:\ASGBuilds\venv\Scripts\pip install -r C:\ASGBuilds\requirements.txt ^
-            && echo "Requirements successfully installed. Creating environment variables..." ^
-            && setx DATABASE_URL "postgresql+asyncpg://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M ^
-            && setx DATABASE_URL_TEST "postgresql://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M ^
-            && echo "Enviroment variables created. Creating startup task..." ^
-            && schtasks /create /tn "ASG Python Service" /tr "C:\ASGBuilds\venv\Scripts\pythonw.exe C:\ASGBuilds\main.py" /sc onstart /ru SYSTEM /f ^
-            && echo "Startup task created." ^
-            && echo "Deploy complete!"
+          script: |
+            echo "Deploying on Windows..."
+            rmdir /s /q C:\ASGBuilds\ICAO 2>nul
+            mkdir C:\ASGBuilds\ICAO
+            git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds\ICAO
+            python -m venv C:\ASGBuilds\ICAO\venv
+            call C:\ASGBuilds\ICAO\venv\Scripts\activate
+            pip install -r C:\ASGBuilds\ICAO\requirements.txt
+            setx DATABASE_URL "postgresql+asyncpg://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M
+            setx DATABASE_URL_TEST "postgresql://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M
+            schtasks /create /tn "ASG Python Service" /tr "C:\ASGBuilds\ICAO\venv\Scripts\pythonw.exe C:\ASGBuilds\ICAO\main.py" /sc onstart /ru SYSTEM /f
+            echo "Deploy complete!"
 
       - name: Deploy to Linux Server (Install Docker if needed)
         if: env.OS == 'linux'
