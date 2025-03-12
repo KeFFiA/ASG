@@ -19,7 +19,7 @@ jobs:
           host: 193.239.161.50
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: echo Test connection
+          script: echo Connection tested
 
       - name: Check connection result
         run: |
@@ -30,6 +30,7 @@ jobs:
             echo "Connection failed"
             exit 1
           fi
+
   checkout_repository:
     needs: check-connection
     runs-on: ubuntu-latest
@@ -48,7 +49,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: >
+          script: |
             if exist C:\Windows\System32\systeminfo.exe (
               echo "OS=windows" >> %GITHUB_ENV
             ) else (
