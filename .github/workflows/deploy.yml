@@ -49,9 +49,9 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            if command -v uname > /dev/null; then
+            if command uname > /dev/null; then
               echo "OS=linux" >> $GITHUB_ENV
-            elif command -v systeminfo > /dev/null; then
+            elif command systeminfo > /dev/null; then
               echo "OS=windows" >> $GITHUB_ENV
             else
               echo "Unknown OS"
