@@ -42,15 +42,20 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
             echo "Starting check Server OS"
-            if [ -f /etc/os-release ]; then
-              echo "OS=linux" >> $GITHUB_ENV
-            elif [ -f C:\\Windows\\System32\\systeminfo.exe ]; then
-              echo "OS=windows" >> $GITHUB_ENV
+            OS_TYPE=$(uname 2>/dev/null || echo "Windows")
+            echo "Detected OS: $OS_TYPE"
+            if [[ "$OS_TYPE" == *Linux* ]]; then
+              echo "os=linux" >> $GITHUB_ENV
+              echo "os=linux" >> $GITHUB_OUTPUT
+            elif [[ "$OS_TYPE" == *Windows* ]]; then
+              echo "os=windows" >> $GITHUB_ENV
+              echo "os=windows" >> $GITHUB_OUTPUT
             else
-              echo "OS=unknown" >> $GITHUB_ENV
+              echo "Unknown OS"
+              exit 1
             fi
-            echo "Detected OS: ${{ env.OS }}"
 
       - name: Deploy to Windows Server
         if: env.OS == 'windows'
