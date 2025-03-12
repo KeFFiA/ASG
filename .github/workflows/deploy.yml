@@ -32,14 +32,13 @@ jobs:
           fi
 
   checkout_repository:
-    needs: check-connection
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
   deploy:
-    needs: checkout_repository
+    needs: [checkout_repository, check-connection]
     runs-on: ubuntu-latest
     steps:
       - name: Check Server OS
