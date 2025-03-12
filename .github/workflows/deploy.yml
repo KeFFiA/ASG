@@ -45,7 +45,7 @@ jobs:
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: >
-            && del C:\deploy.log 2>nul ^ 
+            del C:\deploy.log 2>nul ^ 
             && echo Stopping old service... >> C:\deploy.log ^ 
             && sc stop ASGService 2>nul || echo Service not found >> C:\deploy.log ^ 
             && sc delete ASGService 2>nul || echo Service not found >> C:\deploy.log ^ 
