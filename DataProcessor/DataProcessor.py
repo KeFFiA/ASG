@@ -11,7 +11,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from tqdm import tqdm
 
 from FindPath import sync_async_method
-from Logger import logger
+from Utills.Logger import logger
+from Utills import StateManager as state
 from DATABASE import ASGPassengersTable
 
 warnings.filterwarnings(
@@ -176,6 +177,7 @@ class DataProcessor:
         except Exception as e:
             await session.rollback()
             logger.critical(f"Critical DB error: {str(e)}", exc_info=True)
+            state.update_error(f"Critical DB error: {str(e)}")
 
     @sync_async_method
     async def retry_failed_insertions(self, async_session):

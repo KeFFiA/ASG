@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
 from FindPath import sync_async_method
-from Logger import logger
+from Utills.Logger import logger
+from Utills import StateManager as state
 
 
 class Finder:
@@ -74,6 +75,7 @@ class Finder:
 
             # If the folder is not found
         logger.critical("Downloads folder not found")
+        state.update_error("Downloads folder not found")
         raise FileNotFoundError("Downloads folder not found")
 
     @sync_async_method
@@ -96,6 +98,7 @@ class Finder:
             return self.passengers_path
 
         logger.critical("PassengersData folder not found")
+        state.update_error("PassengersData folder not found")
         raise FileNotFoundError("PassengersData folder not found")
 
     @sync_async_method
@@ -112,6 +115,7 @@ class Finder:
 
         if not self.passengers_path:
             logger.critical("PassengersData folder not found")
+            state.update_error("PassengersData folder not found")
             raise FileNotFoundError("PassengersData folder not found")
 
         passengers_dir = Path(self.passengers_path)

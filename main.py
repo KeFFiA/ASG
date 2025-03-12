@@ -6,18 +6,14 @@ from DATABASE import check_and_create_table
 from DataProcessor import DataProcessor
 from FindPath import Finder
 from dotenv import load_dotenv
-from Logger import logger
-
-load_dotenv()
-
+from Utills.Logger import logger
+from Utills import StateManager as state
 from fastapi import FastAPI, HTTPException
 import asyncpg
 
+load_dotenv()
 
 app = FastAPI()
-app.state.start_time = None
-app.state.processing = False
-app.state.last_error = None
 
 
 async def check_db_connection():
@@ -31,34 +27,34 @@ async def check_db_connection():
         await conn.close()
         return True
     except Exception as e:
-        app.state.last_error = str(e)
-        return False
+        state.update_error(str(e))
+        return True
 
 
 @app.post("/start")
 async def start():
-    if not app.state.processing:
+    if not state.get_processing():
         asyncio.create_task(run_main())
 
-        app.state.start_time = datetime.now()
+        state.update_start_time(datetime.now())
 
         db_status = await check_db_connection()
 
         status = {
             "status": "ok",
             "details": {
-                "start_time": app.state.start_time.strftime("%H:%M:%S"),
+                "start_time": state.get_start_time(),
                 "database": "active" if db_status else "inactive",
-                "processing": "running" if app.state.processing else "idle"
+                "processing": "running" if state.get_processing() else "idle"
             }
         }
 
-        if not db_status or app.state.last_error:
+        if not db_status or state.get_last_error():
             status["status"] = "error"
-            status["details"]["error"] = app.state.last_error
+            status["details"]["error"] = state.get_last_error()
             raise HTTPException(status_code=500, detail=status)
 
-        if not app.state.processing:
+        if not state.get_processing():
             status["status"] = "warning"
             status["details"]["message"] = "Processing not running"
 
@@ -70,10 +66,10 @@ async def start():
         status = {
             "status": "ok",
             "details": {
-                "message": "Processing has already started",
-                "start_time": app.state.start_time.strftime("%H:%M:%S"),
+                "message": "Processing already running",
+                "start_time": state.get_start_time(),
                 "database": "active" if db_status else "inactive",
-                "processing": "running" if app.state.processing else "idle"
+                "processing": "running" if state.get_processing() else "idle"
             }
         }
 
@@ -86,18 +82,18 @@ async def health_check():
     health_status = {
         "status": "ok",
         "details": {
-            "start_time": app.state.start_time.strftime("%H:%M:%S"),
+            "start_time": state.get_start_time() if state.get_start_time() else "Not started",
             "database": "active" if db_status else "inactive",
-            "processing": "running" if app.state.processing else "idle"
+            "processing": "running" if state.get_processing else "idle"
         }
     }
 
-    if not db_status or app.state.last_error:
+    if not db_status or state.get_last_error():
         health_status["status"] = "error"
-        health_status["details"]["error"] = app.state.last_error
+        health_status["details"]["error"] = state.get_last_error()
         raise HTTPException(status_code=500, detail=health_status)
 
-    if not app.state.processing:
+    if not state.get_processing():
         health_status["status"] = "warning"
         health_status["details"]["message"] = "Processing not running"
 
@@ -123,7 +119,7 @@ async def run_main():
         logger.info("Data processor initialized")
 
         logger.info("Starting data processor loop")
-        app.state.processing = True
+        state.update_processing(True)
         await processor.process_files(file_paths=files_list)
         logger.info("Data processor loop completed")
 
@@ -140,16 +136,16 @@ async def run_main():
                 f"and {len(processor.errors['FAILED_DATA'])} records"
             )
             await processor.retry_failed_insertions()
-            app.state.processing = True
+            state.update_processing(True)
 
     except Exception as e:
         logger.error(f"Application failed: {str(e)}")
         raise
     finally:
-        app.state.processing = False
+        state.update_processing(False)
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)

@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import MetaData, Column, Integer, String, Float, text
 from sqlalchemy.orm import declarative_base
 from dotenv import load_dotenv
-from Logger import logger
+from Utills.Logger import logger
+from Utills import StateManager as state
 
 load_dotenv()
 
@@ -51,6 +52,7 @@ async def check_and_create_table():
                         )
                     """))
         except Exception as e:
+            state.update_error(str(e))
             logger.warning(f"Index creation warning: {str(e)}")
 
     logger.info("Database initialization complete")
