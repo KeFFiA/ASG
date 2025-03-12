@@ -53,9 +53,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: >
             echo "Deploying on Windows..." ^
-            && echo "Killing python proccess..." ^
-            && taskkill /IM python.exe /F /T 2>nul ^
-            && taskkill /IM pythonw.exe /F /T 2>nul ^
             && echo "Python proccess killed. Deleting old directory..." ^
             && rmdir /s /q C:\ASGBuilds\ICAO 2>nul ^
             && echo "Deleting success. Creating new directory..." ^
