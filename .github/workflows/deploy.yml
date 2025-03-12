@@ -46,20 +46,20 @@ jobs:
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cmd /c "echo Stopping old service... > C:\ASGBuilds\deploy.log"
-            cmd /c "sc stop ASGService || echo Service not found > C:\ASGBuilds\deploy.log"
-            cmd /c "sc delete ASGService || echo Service not found > C:\ASGBuilds\deploy.log"
+            cmd /c "echo Stopping old service... >> C:\ASGBuilds\deploy.log"
+            cmd /c "sc stop ASGService || echo Service not found >> C:\ASGBuilds\deploy.log"
+            cmd /c "sc delete ASGService || echo Service not found >> C:\ASGBuilds\deploy.log"
             
-            cmd /c "echo Deploying new version... > C:\ASGBuilds\deploy.log"
-            cmd /c "rmdir /s /q C:\ASGBuilds || echo Folder not found > C:\ASGBuilds\deploy.log"
+            cmd /c "echo Deploying new version... >> C:\ASGBuilds\deploy.log"
+            cmd /c "rmdir /s /q C:\ASGBuilds || echo Folder not found >> C:\ASGBuilds\deploy.log"
             cmd /c "mkdir C:\ASGBuilds"
             
             cmd /c "git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds"
             
             cmd /c "cd C:\ASGBuilds && python -m venv venv && .\venv\Scripts\pip install -r requirements.txt"
             
-            cmd /c "echo Creating service... > C:\ASGBuilds\deploy.log"
+            cmd /c "echo Creating service... >> C:\ASGBuilds\deploy.log"
             cmd /c "sc create ASGService binPath= \"C:\ASGBuilds\venv\Scripts\python.exe C:\ASGBuilds\main.py\" start= auto"
             
-            cmd /c "echo Starting service... > C:\ASGBuilds\deploy.log"
-            cmd /c "sc start ASGService"
+            cmd /c "echo Starting service... >> C:\ASGBuilds\deploy.log"
+            cmd /c "sc start ASGService >> C:\ASGBuilds\deploy.log"
