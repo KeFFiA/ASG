@@ -20,7 +20,7 @@ jobs:
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo " "
+            cmd /c "echo Test connection"
 
       - name: Check connection result
         run: |
@@ -46,4 +46,4 @@ jobs:
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cmd /c "del C:\deploy.log && echo Stopping old service... >> C:\deploy.log && sc stop ASGService || echo Service not found >> C:\deploy.log && sc delete ASGService || echo Service not found >> C:\deploy.log && echo Deploying new version... >> C:\deploy.log && rmdir /s /q C:\ASGBuilds || echo Folder not found >> C:\deploy.log && mkdir C:\ASGBuilds && git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds && cd C:\ASGBuilds && python -m venv venv && .\venv\Scripts\pip install -r requirements.txt && echo Creating service... >> C:\deploy.log && sc create ASGService binPath= \"C:\ASGBuilds\venv\Scripts\python.exe C:\ASGBuilds\main.py\" start= auto && echo Starting service... >> C:\deploy.log && sc start ASGService"
+            cmd /c "set PYTHONPATH= && set DATABASE_URL=postgresql+asyncpg://keffia:110412003Aa@localhost/MyDB && set DATABASE_URL_TEST=postgresql://keffia:110412003Aa@localhost/MyDB && echo Stopping old service... >> C:\ASGBuilds\deploy.log && sc stop ASGService || echo Service not found >> C:\ASGBuilds\deploy.log && sc delete ASGService || echo Service not found >> C:\ASGBuilds\deploy.log && echo Deploying new version... >> C:\ASGBuilds\deploy.log && rmdir /s /q C:\ASGBuilds && mkdir C:\ASGBuilds && git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds && cd C:\ASGBuilds && set PYTHONPATH= && set DATABASE_URL=postgresql+asyncpg://keffia:110412003Aa@localhost/MyDB && set DATABASE_URL_TEST=postgresql://keffia:110412003Aa@localhost/MyDB && python -m venv venv && .\venv\Scripts\pip install -r requirements.txt && echo Creating service... >> C:\ASGBuilds\deploy.log && sc create ASGService binPath= \"C:\ASGBuilds\venv\Scripts\python.exe C:\ASGBuilds\main.py\" start= auto && echo Starting service... >> C:\ASGBuilds\deploy.log && sc start ASGService"
