@@ -39,11 +39,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Deploy via SSH
+      - name: Deploy on server
         uses: appleboy/ssh-action@master
         with:
           host: 193.239.161.50
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cmd /c "set PYTHONPATH= && set DATABASE_URL=postgresql+asyncpg://keffia:110412003Aa@localhost/MyDB && set DATABASE_URL_TEST=postgresql://keffia:110412003Aa@localhost/MyDB && echo Stopping old service... >> C:\ASGBuilds\deploy.log && sc stop ASGService || echo Service not found >> C:\ASGBuilds\deploy.log && sc delete ASGService || echo Service not found >> C:\ASGBuilds\deploy.log && echo Deploying new version... >> C:\ASGBuilds\deploy.log && rmdir /s /q C:\ASGBuilds && mkdir C:\ASGBuilds && git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds && cd C:\ASGBuilds && set PYTHONPATH= && set DATABASE_URL=postgresql+asyncpg://keffia:110412003Aa@localhost/MyDB && set DATABASE_URL_TEST=postgresql://keffia:110412003Aa@localhost/MyDB && python -m venv venv && .\venv\Scripts\pip install -r requirements.txt && echo Creating service... >> C:\ASGBuilds\deploy.log && sc create ASGService binPath= \"C:\ASGBuilds\venv\Scripts\python.exe C:\ASGBuilds\main.py\" start= auto && echo Starting service... >> C:\ASGBuilds\deploy.log && sc start ASGService"
+            cmd /c "set PYTHONPATH= && set PYTHONHOME= && set DATABASE_URL=postgresql+asyncpg://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@localhost/${{ secrets.DATABASE }} && set DATABASE_URL_TEST=postgresql://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@localhost/${{ secrets.DATABASE }} && echo Stopping old service... >> C:\ASGBuilds\deploy.log && sc stop ASGService || echo Service not found >> C:\ASGBuilds\deploy.log && sc delete ASGService || echo Service not found >> C:\ASGBuilds\deploy.log && echo Deploying new version... >> C:\ASGBuilds\deploy.log && rmdir /s /q C:\ASGBuilds && mkdir C:\ASGBuilds && git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds && cd C:\ASGBuilds && set PYTHONPATH= && set PYTHONHOME= && set DATABASE_URL=postgresql+asyncpg://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@localhost/${{ secrets.DATABASE }} && set DATABASE_URL_TEST=postgresql://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@localhost/${{ secrets.DATABASE }} && python -m venv venv && .\venv\Scripts\pip install -r requirements.txt && echo Creating service... >> C:\ASGBuilds\deploy.log && sc create ASGService binPath= \"C:\ASGBuilds\venv\Scripts\python.exe C:\ASGBuilds\main.py\" start= auto && echo Starting service... >> C:\ASGBuilds\deploy.log && sc start ASGService"
