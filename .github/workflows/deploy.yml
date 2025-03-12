@@ -60,7 +60,8 @@ jobs:
             && call C:\ASGBuilds\venv\Scripts\activate ^
             && C:\ASGBuilds\venv\Scripts\python.exe -m pip install --upgrade pip ^
             && C:\ASGBuilds\venv\Scripts\pip install -r requirements.txt ^
-            && echo Creating service... >> C:\deploy.log ^
-            && sc create ASGService binPath= "C:\ASGBuilds\venv\Scripts\python.exe C:\ASGBuilds\main.py" start= auto ^
-            && echo Starting service... >> C:\deploy.log ^
-            && sc start ASGService
+            && echo Creating service using NSSM... >> C:\deploy.log ^
+            && nssm install ASGService "C:\ASGBuilds\venv\Scripts\python.exe" "C:\ASGBuilds\main.py" ^
+            && echo Starting service using NSSM... >> C:\deploy.log ^
+            && nssm start ASGService ^
+            && echo ASGService started successfully >> C:\deploy.log
