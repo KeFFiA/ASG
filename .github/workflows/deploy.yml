@@ -47,8 +47,8 @@ jobs:
           script: >
             del C:\deploy.log 2>nul ^
             && echo Stopping old service... >> C:\deploy.log ^
-            && sc stop ASGService 2>nul || echo Service not found >> C:\deploy.log ^
-            && sc delete ASGService 2>nul || echo Service not found >> C:\deploy.log ^
+            && (sc stop ASGService 2>nul) || (echo Service not found >> C:\deploy.log) ^
+            && (sc delete ASGService 2>nul) || (echo Service not found >> C:\deploy.log) ^
             && echo Deploying new version... >> C:\deploy.log ^
             && rmdir /s /q C:\ASGBuilds 2>nul ^
             && mkdir C:\ASGBuilds ^
