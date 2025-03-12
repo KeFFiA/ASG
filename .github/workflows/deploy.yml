@@ -62,10 +62,10 @@ jobs:
             && echo "Cloning repository into C:\ASGBuilds\ICAO"
             && git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds\ICAO ^
             && echo "Successfully cloned. Activating venv..." ^
-            && python -m venv C:\ASGBuilds\ICAO\venv ^
-            && call C:\ASGBuilds\ICAO\venv\Scripts\activate ^
+            && python -m venv C:\ASGBuilds\ICAO\.venv ^
+            && call C:\ASGBuilds\ICAO\.venv\Scripts\activate ^
             && echo "Venv successfully activated. Installing requirements..." ^
-            && C:\ASGBuilds\ICAO\venv\Scripts\pip install -r C:\ASGBuilds\ICAO\requirements.txt ^
+            && C:\ASGBuilds\ICAO\.venv\Scripts\pip install -r C:\ASGBuilds\ICAO\requirements.txt ^
             && echo "Requirements successfully installed. Creating environment variables..." ^
             && setx DATABASE_URL "postgresql+asyncpg://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M ^
             && setx DATABASE_URL_TEST "postgresql://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M ^
