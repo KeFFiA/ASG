@@ -61,6 +61,6 @@ jobs:
             && C:\ASGBuilds\venv\Scripts\python.exe -m pip install --upgrade pip ^ 
             && C:\ASGBuilds\venv\Scripts\pip install -r requirements.txt ^ 
             && echo Creating service... >> C:\deploy.log ^ 
-            && sc create ASGService binPath=^"\"C:\ASGBuilds\venv\Scripts\python.exe\" \"C:\ASGBuilds\main.py\"" start= auto ^ 
+            && sc create ASGService binPath= ^"\"C:\ASGBuilds\venv\Scripts\python.exe\" \"C:\ASGBuilds\main.py\"" start= auto ^ 
             && echo Starting service... >> C:\deploy.log ^ 
             && sc start ASGService
