@@ -42,7 +42,6 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            set -e
             echo "Starting check Server OS"
             OS_TYPE=$(uname 2>/dev/null || echo "Windows")
             echo "Detected OS: $OS_TYPE"
