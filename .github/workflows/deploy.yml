@@ -53,9 +53,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: >
             echo "Deploying on Windows..." ^
-            && echo "Killing python proccess..." ^
+            && echo "Killing python process..." ^
             && taskkill /IM python.exe /F /T 2>nul || echo "No python.exe process found" ^
-            && echo "Python proccess killed. Deleting old directory..." ^
+            && echo "Python process killed. Deleting old directory..." ^
             && rmdir /s /q C:\ASGBuilds\ICAO 2>nul ^
             && echo "Deleting success. Creating new directory..." ^
             && mkdir C:\ASGBuilds\ICAO ^
@@ -69,7 +69,7 @@ jobs:
             && echo "Requirements successfully installed. Creating environment variables..." ^
             && setx DATABASE_URL "postgresql+asyncpg://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M ^
             && setx DATABASE_URL_TEST "postgresql://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M ^
-            && echo "Enviroment variables created. Creating startup task..." ^
+            && echo "Environment variables created. Creating startup task..." ^
             && schtasks /create /tn "ASG Python Service" /tr "C:\ASGBuilds\ICAO\start.bat" /sc onstart /ru SYSTEM /f ^
             && echo "Startup task created." ^
             && cd C:\ASGBuilds\ICAO ^
