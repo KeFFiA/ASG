@@ -63,5 +63,4 @@ jobs:
             && echo Creating service using NSSM... >> C:\deploy.log ^
             && nssm install ASGService "C:\ASGBuilds\venv\Scripts\python.exe" "C:\ASGBuilds\main.py" ^
             && echo Starting service using NSSM... >> C:\deploy.log ^
-            && nssm start ASGService ^
-            && echo ASGService started successfully >> C:\deploy.log
+            && nssm start ASGService
