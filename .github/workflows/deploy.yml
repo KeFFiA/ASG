@@ -38,11 +38,14 @@ jobs:
         uses: actions/checkout@v3
 
   deploy:
-    needs: [checkout_repository, check-connection]
+    needs: [ checkout_repository, check-connection ]
     runs-on: ubuntu-latest
     steps:
+      - name: Set OS environment variable
+        run: echo "OS=${{ secrets.OS }}" >> $GITHUB_ENV
+
       - name: Deploy to Windows Server
-        if: secrets.OS == 'windows'
+        if: env.OS == 'windows'
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -64,7 +67,7 @@ jobs:
             && echo "Requirements successfully installed. Creating environment variables..." ^
             && setx DATABASE_URL "postgresql+asyncpg://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M ^
             && setx DATABASE_URL_TEST "postgresql://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M ^
-            && echo "Enviroment vatiables created. Creating startup task..." ^
+            && echo "Enviroment variables created. Creating startup task..." ^
             && schtasks /create /tn "ASG Python Service" /tr "C:\ASGBuilds\venv\Scripts\pythonw.exe C:\ASGBuilds\main.py" /sc onstart /ru SYSTEM /f ^
             && echo "Startup task created." ^
             && echo "Deploy complete!"
