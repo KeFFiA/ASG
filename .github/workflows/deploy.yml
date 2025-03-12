@@ -5,9 +5,6 @@ on:
     branches:
       - master
 
-env:
-  SHELL: powershell
-
 jobs:
   check-connection:
     runs-on: ubuntu-latest
@@ -24,6 +21,16 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: echo Connection tested
 
+      - name: Check connection result
+        run: |
+          echo "Test connection..."
+          if [ "${{ steps.ssh_test.outcome }}" == "success" ]; then
+            echo "Connection successful"
+          else
+            echo "Connection failed"
+            exit 1
+          fi
+
   checkout_repository:
     runs-on: ubuntu-latest
     steps:
@@ -34,48 +41,35 @@ jobs:
     needs: [checkout_repository, check-connection]
     runs-on: ubuntu-latest
     steps:
-      - name: Check Server OS
-        id: check_os
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            echo "Starting check Server OS"
-            OS_TYPE=$(uname 2>/dev/null || echo "Windows")
-            echo "Detected OS: $OS_TYPE"
-            if [[ "$OS_TYPE" == *Linux* ]]; then
-              echo "os=linux" >> $GITHUB_ENV
-              echo "os=linux" >> $GITHUB_OUTPUT
-            elif [[ "$OS_TYPE" == *Windows* ]]; then
-              echo "os=windows" >> $GITHUB_ENV
-              echo "os=windows" >> $GITHUB_OUTPUT
-            else
-              echo "Unknown OS"
-              exit 1
-            fi
-
       - name: Deploy to Windows Server
-        if: env.OS == 'windows'
+        if: secrets.OS == 'windows'
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            echo "Deploying on Windows..."
-            rmdir /s /q C:\ASGBuilds\ICAO 2>nul
-            mkdir C:\ASGBuilds\ICAO
-            git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds\ICAO
-            python -m venv C:\ASGBuilds\ICAO\venv
-            C:\ASGBuilds\ICAO\venv\Scripts\pip install -r C:\ASGBuilds\ICAO\requirements.txt
-            setx DATABASE_URL "postgresql+asyncpg://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M
-            setx DATABASE_URL_TEST "postgresql://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M
-            schtasks /create /tn "ASG Python Service" /tr "C:\ASGBuilds\ICAO\venv\Scripts\pythonw.exe C:\ASGBuilds\ICAO\main.py" /sc onstart /ru SYSTEM /f
-            echo "Deploy complete!"
+          script: >
+            echo "Deploying on Windows..." ^
+            && echo "Deleting old directory..." ^
+            && rmdir /s /q C:\ASGBuilds\ICAO 2>nul ^
+            && echo "Deleting success. Creating new directory..." ^
+            && mkdir C:\ASGBuilds\ICAO ^
+            && echo "Cloning repository into C:\ASGBuilds\ICAO"
+            && git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds\ICAO ^
+            && echo "Successfully cloned. Activating venv..." ^
+            && python -m venv C:\ASGBuilds\ICAO\venv ^
+            && call C:\ASGBuilds\venv\Scripts\activate ^
+            && echo "Venv successfully activated. Installing requirements..." ^
+            && C:\ASGBuilds\venv\Scripts\pip install -r C:\ASGBuilds\requirements.txt ^
+            && echo "Requirements successfully installed. Creating environment variables..." ^
+            && setx DATABASE_URL "postgresql+asyncpg://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M ^
+            && setx DATABASE_URL_TEST "postgresql://${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" /M ^
+            && echo "Enviroment vatiables created. Creating startup task..." ^
+            && schtasks /create /tn "ASG Python Service" /tr "C:\ASGBuilds\venv\Scripts\pythonw.exe C:\ASGBuilds\main.py" /sc onstart /ru SYSTEM /f ^
+            && echo "Startup task created." ^
+            && echo "Deploy complete!"
 
-      - name: Deploy to Linux Server
+      - name: Deploy to Linux Server (Install Docker if needed)
         if: env.OS == 'linux'
         uses: appleboy/ssh-action@master
         with:
@@ -83,13 +77,18 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "Updating packages..."
-            sudo apt-get update
-            echo "Installing Docker..."
-            sudo apt-get install -y docker.io
-            sudo systemctl enable docker
-            sudo systemctl start docker
-            echo "Building and running container..."
+            echo "Checking if Docker is installed..."
+            if ! command -v docker &> /dev/null; then
+              echo "Docker not found. Installing..."
+              sudo apt-get update
+              sudo apt-get install -y docker.io
+              sudo systemctl enable docker
+              sudo systemctl start docker
+            fi
+            echo "Deploying in Docker..."
+            docker stop asg_container || true
+            docker rm asg_container || true
+            docker rmi asg_image || true
             docker build -t asg_image .
             docker run -d --name asg_container \
               -e DATABASE_URL="${{ secrets.USERNAME }}:${{ secrets.PASSWORD }}@${{ secrets.DB_HOST }}/${{ secrets.DATABASE }}" \
