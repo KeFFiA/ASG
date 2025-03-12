@@ -45,23 +45,26 @@ jobs:
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: >
-            del C:\deploy.log 2>nul ^
-            && echo Stopping old service... >> C:\deploy.log ^
-            && (sc stop ASGService 2>nul) || (echo Service not found >> C:\deploy.log) ^
-            && (sc delete ASGService 2>nul) || (echo Service not found >> C:\deploy.log) ^
-            && echo Deploying new version... >> C:\deploy.log ^
-            && rmdir /s /q C:\ASGBuilds 2>nul ^
-            && mkdir C:\ASGBuilds ^
-            && git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds ^
-            && echo Setting up Python environment... >> C:\deploy.log ^
-            && cd C:\ASGBuilds ^
-            && python -m ensurepip --default-pip ^
-            && python -m venv venv ^
-            && call C:\ASGBuilds\venv\Scripts\activate ^
-            && C:\ASGBuilds\venv\Scripts\python.exe -m pip install --upgrade pip ^
-            && C:\ASGBuilds\venv\Scripts\pip install -r requirements.txt ^
-            && echo Creating service using NSSM... >> C:\deploy.log ^
-            && nssm install ASGService "C:\ASGBuilds\venv\Scripts\python.exe" "C:\ASGBuilds\main.py" ^
-            && echo Starting service using NSSM... >> C:\deploy.log ^
-            && nssm start ASGService ^
-            && echo ASGService started successfully! >> C:\deploy.log
+            rem Write commands into C:\deploy.bat
+            echo del C:\deploy.log 2>nul > C:\deploy.bat &&
+            echo echo Stopping old service... >> C:\deploy.bat &&
+            echo sc stop ASGService 2>nul || echo Service not found >> C:\deploy.bat &&
+            echo sc delete ASGService 2>nul || echo Service not found >> C:\deploy.bat &&
+            echo echo Deploying new version... >> C:\deploy.bat &&
+            echo rmdir /s /q C:\ASGBuilds 2>nul >> C:\deploy.bat &&
+            echo mkdir C:\ASGBuilds >> C:\deploy.bat &&
+            echo git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds >> C:\deploy.bat &&
+            echo echo Setting up Python environment... >> C:\deploy.bat &&
+            echo cd C:\ASGBuilds >> C:\deploy.bat &&
+            echo python -m ensurepip --default-pip >> C:\deploy.bat &&
+            echo python -m venv venv >> C:\deploy.bat &&
+            echo call C:\ASGBuilds\venv\Scripts\activate >> C:\deploy.bat &&
+            echo C:\ASGBuilds\venv\Scripts\python.exe -m pip install --upgrade pip >> C:\deploy.bat &&
+            echo C:\ASGBuilds\venv\Scripts\pip install -r requirements.txt >> C:\deploy.bat &&
+            echo echo Creating service using NSSM... >> C:\deploy.bat &&
+            echo nssm install ASGService "C:\ASGBuilds\venv\Scripts\python.exe" "C:\ASGBuilds\main.py" >> C:\deploy.bat &&
+            echo echo Starting service using NSSM... >> C:\deploy.bat &&
+            echo nssm start ASGService >> C:\deploy.bat &&
+            echo echo ASGService started successfully! >> C:\deploy.bat &&
+            rem Start deploy.bat
+            cmd /c C:\deploy.bat
