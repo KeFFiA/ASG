@@ -1,2 +1,2 @@
-from .SyncOrAsync import sync_async_method
-from .FindPath import Finder
+from FindPath.SyncOrAsync import sync_async_method
+from FindPath.FindPath import Finder

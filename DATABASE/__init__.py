@@ -1,1 +1,1 @@
-from .InitialCreateDB import check_and_create_table, MyTable
+from DATABASE.InitialCreateDB import check_and_create_table, MyTable

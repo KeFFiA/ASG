@@ -1,1 +1,1 @@
-from .DataProcessor import DataProcessor
+from DataProcessor.DataProcessor import DataProcessor
