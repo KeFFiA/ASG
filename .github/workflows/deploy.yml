@@ -54,6 +54,7 @@ jobs:
             ) else (
               echo "OS=linux" >> $GITHUB_ENV
             )
+            echo ${{ env.os }}
 
       - name: Deploy to Windows Server
         if: env.OS == 'windows'
