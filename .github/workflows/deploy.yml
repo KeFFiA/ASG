@@ -70,6 +70,7 @@ jobs:
             && echo "Enviroment variables created. Creating startup task..." ^
             && schtasks /create /tn "ASG Python Service" /tr "C:\ASGBuilds\ICAO\venv\Scripts\pythonw.exe C:\ASGBuilds\ICAO\main.py" /sc onstart /ru SYSTEM /f ^
             && echo "Startup task created." ^
+            && C:\ASGBuilds\ICAO\venv\Scripts\python.exe C:\ASGBuilds\ICAO\main.py ^
             && echo "Deploy complete!"
 
       - name: Deploy to Linux Server (Install Docker if needed)
