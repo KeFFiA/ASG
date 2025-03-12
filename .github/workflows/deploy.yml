@@ -20,10 +20,11 @@ jobs:
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "Connection successful"
+            echo " "
 
       - name: Check connection result
         run: |
+          echo "Test connection..."
           if [ "${{ steps.ssh_test.outcome }}" == "success" ]; then
             echo "Connection successful"
           else
