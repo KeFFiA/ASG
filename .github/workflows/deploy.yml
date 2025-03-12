@@ -3,46 +3,39 @@ name: Deploy to Windows Server
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Debug SSH Key
-      run: echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64
-
-    - name: Deploy to Windows Server via SSH
-      uses: appleboy/ssh-action@master
-      with:
-        host: 193.239.161.50
-        username: Administrator
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          echo "🛑 Остановка старого сервиса..."
-          sc stop ASGService || echo "Сервис уже остановлен"
-          sc delete ASGService || echo "Сервис не найден"
-
-          echo "📦 Очистка старого кода..."
-          rmdir /s /q C:\ASGBuilds || echo "Папка не найдена"
-          mkdir C:\ASGBuilds
-
-          echo "⬇️ Клонирование нового кода..."
-          git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds
-
-          echo "🐍 Установка зависимостей..."
-          cd C:\ASGBuilds
-          python -m venv venv
-          .\venv\Scripts\pip install -r requirements.txt
-
-          echo "🔧 Создание Windows-службы..."
-          sc create ASGService binPath= "C:\ASGBuilds\venv\Scripts\python.exe C:\ASGBuilds\main.py" start= auto
-          
-          echo "🚀 Запуск сервиса..."
-          sc start ASGService
-
-          echo "✅ Деплой завершен!"
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: 193.239.161.50
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "Stopping old service..."
+            sc stop ASGService || echo "Service not found"
+            sc delete ASGService || echo "Service not found"
+            
+            echo "Deploying new version..."
+            rmdir /s /q C:\ASGBuilds || echo "Folder not found"
+            mkdir C:\ASGBuilds
+            
+            git clone https://github.com/KeFFiA/ASG.git C:\ASGBuilds
+            
+            cd C:\ASGBuilds
+            python -m venv venv
+            .\venv\Scripts\pip install -r requirements.txt
+            
+            echo "Creating service..."
+            sc create ASGService binPath= "C:\ASGBuilds\venv\Scripts\python.exe C:\ASGBuilds\main.py" start= auto
+            
+            echo "Starting service..."
+            sc start ASGService
