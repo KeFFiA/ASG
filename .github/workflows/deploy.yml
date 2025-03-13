@@ -72,7 +72,6 @@ jobs:
             && echo "Environment variables created. Creating startup task..." ^
             && schtasks /create /tn "ASG Python Service" /tr "C:\ASGBuilds\ICAO\start.bat" /sc onstart /ru SYSTEM /f ^
             && echo "Startup task created." ^
-            && timeout /t 5 ^
             && start /B C:\ASGBuilds\ICAO\start.bat ^
             && echo "Deploy complete!"
 
