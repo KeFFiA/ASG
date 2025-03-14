@@ -180,7 +180,7 @@ class DataProcessor:
             state.update_error(f"Critical DB error: {str(e)}")
 
     @sync_async_method
-    async def retry_failed_insertions(self, async_session):
+    async def retry_failed_insertions(self):
         """Reprocessing files and data not inserted into the database"""
 
         if not self.errors["FAILED"] and not self.errors["FAILED_DATA"]:
@@ -189,6 +189,13 @@ class DataProcessor:
 
         failed_files = self.errors["FAILED"][:]
         self.errors["FAILED"].clear()
+
+        engine = create_async_engine(self.db_url)
+        async_session = async_sessionmaker(
+            engine,
+            expire_on_commit=False,
+            class_=AsyncSession
+        )
 
         for file_path in failed_files:
             try:
@@ -199,7 +206,6 @@ class DataProcessor:
 
         failed_data = self.errors["FAILED_DATA"][:]
         self.errors["FAILED_DATA"].clear()
-
         async with async_session() as session:
             for entry in failed_data:
                 try:
@@ -208,6 +214,8 @@ class DataProcessor:
                 except Exception as e:
                     logger.warning(f"Error while re-inserting data: {e}. Data: {data}")
                     self.errors["FAILED_DATA"].append(data)
+
+        await engine.dispose()
 
         logger.info(
             f"Reprocessing completed. Remaining {len(self.errors['FAILED'])} files and {len(self.errors['FAILED_DATA'])} records")
