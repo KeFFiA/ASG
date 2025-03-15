@@ -1,6 +1,6 @@
 import os
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy import MetaData, Column, Integer, String, Float, text
+from sqlalchemy import MetaData, Column, Integer, String, Float, text, Numeric
 from sqlalchemy.orm import declarative_base
 from dotenv import load_dotenv
 from Utills.Logger import logger
@@ -15,7 +15,8 @@ Base = declarative_base()
 
 class ASGPassengersTable(Base):
     __tablename__ = "PassengersFlow"
-    id = Column(Integer, primary_key=True)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
     from_city = Column(String, nullable=False)
     to_city = Column(String, nullable=False)
     year = Column(Integer, nullable=False)
@@ -29,9 +30,23 @@ class ASGPassengersTable(Base):
     number_of_flights = Column(Integer, nullable=True, default=None)
     seats_available = Column(Integer, nullable=False)
     average_seats_available = Column(Integer, nullable=True, default=None)
-    pof = Column(Float, nullable=False)
-    apof = Column(Float, nullable=True, default=None)
+    passenger_occupancy_factor = Column(Float, nullable=False)
+    average_payload_capacity = Column(Float, nullable=True, default=None)
 
+
+class ASGFinancesTable(Base):
+    __tablename__ = 'Finances'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    year = Column(Integer, nullable=False)
+    air_carrier = Column(String(255), nullable=False)
+    financial_category = Column(String(255), nullable=False)
+    main_account = Column(String(255), nullable=False)
+    sub_account = Column(String(255), nullable=False)
+    value = Column(Numeric(32, 2), nullable=False)
+
+    def __repr__(self):
+        return f"<FinancialRecord({self.year}, {self.air_carrier}, {self.financial_category}, {self.value})>"
 
 async def check_and_create_table():
     async with engine.connect() as conn:

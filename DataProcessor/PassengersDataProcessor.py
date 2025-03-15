@@ -10,7 +10,6 @@ from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from tqdm import tqdm
 
-from FindPath import sync_async_method
 from Utills.Logger import logger
 from Utills import StateManager as state
 from DATABASE import ASGPassengersTable
@@ -30,8 +29,11 @@ class DataProcessor:
         self.progress = None
         self.chunk_size = chunk_size
         self.errors: dict = {'AC_PASSED': [], "FAILED": [], "FAILED_DATA": []}
+        self.additional_fields = {
+            'from_state', 'to_state', 'from_territory', 'to_territory',
+            'number_of_flights', 'average_seats_available', 'apof'
+        }
 
-    @sync_async_method
     async def process_files(self, file_paths: list[str]):
         """Basic file processing method"""
 
@@ -42,13 +44,12 @@ class DataProcessor:
             class_=AsyncSession
         )
 
-        with tqdm(total=len(file_paths), desc="File processing") as self.progress:
+        with tqdm(total=len(file_paths), desc="[PassengersFlow]File processing") as self.progress:
             tasks = [self._process_file(async_session, file_path) for file_path in file_paths]
             await asyncio.gather(*tasks)
 
         await engine.dispose()
 
-    @sync_async_method
     async def _process_file(self, async_session, file_path: str):
         """Processing a single file"""
         async with self.semaphore:
@@ -98,7 +99,6 @@ class DataProcessor:
                 self.errors['FAILED'].append(file_path)
                 self.progress.update(1)
 
-    @sync_async_method
     async def _transform_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Data transformation from Excel to PassengersFlow table format"""
 
@@ -116,15 +116,25 @@ class DataProcessor:
             'aircraft_type': 'aircraft_type',
             'passengers_revenue_traffic': 'prt',
             'seats_available': 'seats_available',
-            'passenger_occupancy_factor': 'pof'
+            'passenger_occupancy_factor': 'passenger_occupancy_factor',
+            'from_state': 'from_state',
+            'to_state': 'to_state',
+            'from_territory': 'from_territory',
+            'to_territory': 'to_territory',
+            'nb._of_flights': 'number_of_flights',
+            'average_seats_available': 'average_seats_available',
+            'average_payload_capacity': 'average_payload_capacity'
         }
 
         df = df.rename(columns=column_mapping)
         valid_columns = [col for col in df.columns if col in column_mapping.values()]
 
-        return df[valid_columns]
+        for required in ['from_city', 'to_city', 'year', 'air_carrier', 'aircraft_type']:
+            if required not in valid_columns:
+                df[required] = None
 
-    @sync_async_method
+        return df[valid_columns + list(self.additional_fields)]
+
     async def _insert_to_db(self, session, records: list[dict]):
         """Batch insert/update into DataBase"""
         if not records:
@@ -134,10 +144,10 @@ class DataProcessor:
             for record in records:
                 try:
                     valid_fields = {
-                        'from_city', 'to_city', 'year',
-                        'air_carrier', 'aircraft_type',
-                        'prt', 'seats_available', 'pof'
-                    }
+                                       'from_city', 'to_city', 'year',
+                                       'air_carrier', 'aircraft_type',
+                                       'prt', 'seats_available', 'passenger_occupancy_factor'
+                                   } | self.additional_fields
                     filtered_record = {k: v for k, v in record.items() if k in valid_fields}
 
                     required_fields = {'from_city', 'to_city', 'year', 'air_carrier', 'aircraft_type'}
@@ -155,18 +165,32 @@ class DataProcessor:
                     ]
 
                     existing = await session.execute(
-                        select(ASGPassengersTable).where(and_(*conditions))
-                    )
+                        select(ASGPassengersTable).where(and_(*conditions)))
                     existing = existing.scalars().first()
 
                     if existing:
-                        await session.execute(
-                            update(ASGPassengersTable)
-                            .where(and_(*conditions))
-                            .values(**filtered_record)
-                        )
+                        update_data = {
+                            k: v for k, v in filtered_record.items()
+                            if v is not None and k not in required_fields
+                        }
+
+                        numeric_fields = ['number_of_flights', 'average_seats_available', 'apof']
+                        for field in numeric_fields:
+                            if field in filtered_record and filtered_record[field] is not None:
+                                update_data[field] = filtered_record[field]
+
+                        if update_data:
+                            await session.execute(
+                                update(ASGPassengersTable)
+                                .where(and_(*conditions))
+                                .values(**update_data)
+                            )
                     else:
-                        session.add(ASGPassengersTable(**filtered_record))
+                        new_record_data = {
+                            **filtered_record,
+                            **{field: None for field in self.additional_fields if field not in filtered_record}
+                        }
+                        session.add(ASGPassengersTable(**new_record_data))
 
                 except KeyError as e:
                     logger.warning(f"Skipping record due to missing data: {e}. Data: {record}")
@@ -179,7 +203,6 @@ class DataProcessor:
             logger.critical(f"Critical DB error: {str(e)}", exc_info=True)
             state.update_error(f"Critical DB error: {str(e)}")
 
-    @sync_async_method
     async def retry_failed_insertions(self):
         """Reprocessing files and data not inserted into the database"""
 

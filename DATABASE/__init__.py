@@ -1,1 +1,1 @@
-from DATABASE.InitialCreateDB import check_and_create_table, ASGPassengersTable
+from DATABASE.InitialCreateDB import check_and_create_table, ASGPassengersTable, ASGFinancesTable

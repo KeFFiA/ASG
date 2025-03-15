@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 
 from DATABASE import check_and_create_table
-from DataProcessor import DataProcessor
+from DataProcessor import DataProcessor, FinancialDataProcessor
 from FindPath import Finder
 from dotenv import load_dotenv
 from Utills.Logger import logger
@@ -31,12 +31,15 @@ async def check_db_connection():
         return True
 
 
-@app.post("/start")
-async def start():
+@app.post("/start/{processing_type}")
+async def start(processing_type: str):
     if not state.get_processing():
-        asyncio.create_task(run_main())
-
         state.update_start_time(datetime.now())
+        if processing_type == 'passengers':
+            asyncio.create_task(run_passengers())
+
+        if processing_type == 'finances':
+            asyncio.create_task(run_finances())
 
         db_status = await check_db_connection()
 
@@ -100,7 +103,7 @@ async def health_check():
     return health_status
 
 
-async def run_main():
+async def run_passengers():
     try:
         logger.info("Starting database initialization")
         await check_and_create_table()
@@ -143,6 +146,54 @@ async def run_main():
         raise
     finally:
         state.update_processing(False)
+        state.update_start_time(None)
+
+
+async def run_finances():
+    try:
+        logger.info("Starting finances scope")
+
+        logger.info("Starting database initialization")
+        await check_and_create_table()
+
+        logger.info("Starting finder initialization")
+        finder = Finder()
+        files_list = await finder.all_data()
+        logger.info(f"Found {len(files_list)} files")
+
+        logger.info("Starting data processor initialization")
+        processor = FinancialDataProcessor(
+            db_url=os.getenv("DATABASE_URL"),
+            max_workers=os.cpu_count() * 2,
+            chunk_size=5000
+        )
+        logger.info("Data processor initialized")
+
+        logger.info("Starting data processor loop")
+        state.update_processing(True)
+        await processor.process_files(file_paths=files_list)
+        logger.info("Data processor loop completed")
+
+        logger.info(
+            f"Data processor loop status: \n"
+            f"Files with errors: {len(processor.errors['FAILED'])}\n {processor.errors['FAILED']}\n"
+            f"Data with errors: {len(processor.errors['FAILED_DATA'])}\n {processor.errors['FAILED_DATA']}\n"
+        )
+
+        if len(processor.errors['FAILED_DATA']) > 0 or len(processor.errors['FAILED']) > 0:
+            logger.info(
+                f"Start reprocessing {len(processor.errors['FAILED'])} files "
+                f"and {len(processor.errors['FAILED_DATA'])} records"
+            )
+            await processor.retry_failed_insertions()
+            state.update_processing(True)
+
+    except Exception as e:
+        logger.error(f"Application failed: {str(e)}")
+        raise
+    finally:
+        state.update_processing(False)
+        state.update_start_time(None)
 
 
 if __name__ == "__main__":

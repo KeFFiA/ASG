@@ -17,7 +17,7 @@ class StateManager:
 
     # Time
     @classmethod
-    def update_start_time(cls, start_time: datetime):
+    def update_start_time(cls, start_time: datetime | None):
         cls.start_time = start_time
 
     @classmethod

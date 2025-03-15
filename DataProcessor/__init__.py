@@ -1,1 +1,2 @@
-from DataProcessor.DataProcessor import DataProcessor
+from DataProcessor.PassengersDataProcessor import DataProcessor
+from DataProcessor.FinancesDataProcessor import FinancialDataProcessor

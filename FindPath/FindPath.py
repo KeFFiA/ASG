@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from FindPath import sync_async_method
 from Utills.Logger import logger
 from Utills import StateManager as state
 
@@ -10,6 +9,8 @@ class Finder:
         self.excel_files: list[str] | None = None
         self.downloads_path: str | None = None
         self.passengers_path: str | None = None
+        self.finances_path: str | None = None
+        self.finances_files: list[str] | None = None
         self.home = Path.home()
         self.downloads_candidates = [
             self.home / "Downloads",  # English
@@ -19,12 +20,10 @@ class Finder:
             self.home / "Downloads",  # For macOS/Linux
         ]
 
-    @sync_async_method
     async def downloads(self) -> str | FileNotFoundError:
         """
         Finds and returns Downloads path in your OS
 
-        **Can be sync or async**
         :return: downloads path
         """
 
@@ -78,12 +77,10 @@ class Finder:
         state.update_error("Downloads folder not found")
         raise FileNotFoundError("Downloads folder not found")
 
-    @sync_async_method
     async def passengers(self) -> str | FileNotFoundError:
         """
         Finds and returns PassengersData path in Downloads folder
 
-        **Can be sync or async**
         :return: PassengersData path
         """
 
@@ -101,12 +98,10 @@ class Finder:
         state.update_error("PassengersData folder not found")
         raise FileNotFoundError("PassengersData folder not found")
 
-    @sync_async_method
     async def all_data(self) -> list[str] | None:
         """
         Finds and returns all .xlsx files in the PassengersData folder.
 
-        **Can be sync or async**
         :return: List of paths to .xlsx files
         """
 
@@ -126,3 +121,48 @@ class Finder:
         ]
 
         return self.excel_files
+
+    async def finances(self) -> str | FileNotFoundError:
+        """
+        Finds and returns FinancesData path in Downloads folder
+
+        :return: FinancesData path
+        """
+
+        if not self.downloads_path:
+            await self.downloads()
+
+        finances_folder = os.path.join(self.downloads_path, "FinancesData")
+
+        if os.path.exists(finances_folder):
+            self.finances_path = str(finances_folder)
+
+            return self.finances_path
+
+        logger.critical("FinancesData folder not found")
+        state.update_error("FinancesData folder not found")
+        raise FileNotFoundError("FinancesData folder not found")
+
+    async def all_data_finances(self) -> list[str] | None:
+        """
+        Finds and returns all .xlsx files in the FinancesData folder.
+
+        :return: List of paths to .xlsx files
+        """
+
+        if not self.finances_path:
+            await self.finances()
+
+        if not self.finances_path:
+            logger.critical("FinancesData folder not found")
+            state.update_error("FinancesData folder not found")
+            raise FileNotFoundError("FinancesData folder not found")
+
+        finances_dir = Path(self.finances_path)
+
+        self.finances_files = [
+            str(file) for file in finances_dir.glob("**/*.xlsx")
+            if file.is_file()
+        ]
+
+        return self.finances_files
