@@ -1,4 +1,5 @@
 import asyncio
+import math
 
 import numpy as np
 import psutil
@@ -31,7 +32,7 @@ class DataProcessor:
         self.errors: dict = {'AC_PASSED': [], "FAILED": [], "FAILED_DATA": []}
         self.additional_fields = {
             'from_state', 'to_state', 'from_territory', 'to_territory',
-            'number_of_flights', 'average_seats_available', 'apof'
+            'number_of_flights', 'average_seats_available', 'average_payload_capacity'
         }
 
     async def process_files(self, file_paths: list[str]):
@@ -104,36 +105,35 @@ class DataProcessor:
 
         df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_', regex=False)
 
-        df = df.replace([np.nan, '', ' ', 'nan'], None)
-
-        df.columns = df.columns.str.strip().str.lower()
-
-        column_mapping = {
-            'air_carrier': 'air_carrier',
-            'from_city': 'from_city',
-            'to_city': 'to_city',
-            'year': 'year',
-            'aircraft_type': 'aircraft_type',
-            'passengers_revenue_traffic': 'prt',
-            'seats_available': 'seats_available',
-            'passenger_occupancy_factor': 'passenger_occupancy_factor',
-            'from_state': 'from_state',
-            'to_state': 'to_state',
-            'from_territory': 'from_territory',
-            'to_territory': 'to_territory',
-            'nb._of_flights': 'number_of_flights',
-            'average_seats_available': 'average_seats_available',
-            'average_payload_capacity': 'average_payload_capacity'
+        expected_columns = {
+            'air_carrier', 'from_city', 'to_city', 'year', 'aircraft_type',
+            'prt', 'seats_available', 'passenger_occupancy_factor', 'from_state', 'to_state',
+            'from_territory', 'to_territory', 'number_of_flights',
+            'average_seats_available', 'average_payload_capacity'
         }
 
-        df = df.rename(columns=column_mapping)
-        valid_columns = [col for col in df.columns if col in column_mapping.values()]
+        for col in expected_columns:
+            if col not in df.columns:
+                df[col] = np.nan
 
-        for required in ['from_city', 'to_city', 'year', 'air_carrier', 'aircraft_type']:
-            if required not in valid_columns:
-                df[required] = None
+        df = df.replace([np.nan, pd.NA, '', ' '], None)
+        int_columns = ['year', 'prt', 'seats_available', 'number_of_flights', 'average_seats_available']
+        for col in int_columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64')
 
-        return df[valid_columns + list(self.additional_fields)]
+        float_columns = ['passenger_occupancy_factor', 'average_payload_capacity']
+        for col in float_columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce').astype('float64')
+            df[col] = df[col].replace(np.nan, None)
+
+        ordered_columns = [
+            'from_city', 'to_city', 'year', 'air_carrier', 'aircraft_type',
+            'prt', 'seats_available', 'passenger_occupancy_factor', 'from_state', 'to_state',
+            'from_territory', 'to_territory', 'number_of_flights',
+            'average_seats_available', 'average_payload_capacity'
+        ]
+
+        return df[ordered_columns]
 
     async def _insert_to_db(self, session, records: list[dict]):
         """Batch insert/update into DataBase"""
@@ -143,12 +143,34 @@ class DataProcessor:
         try:
             for record in records:
                 try:
-                    valid_fields = {
-                                       'from_city', 'to_city', 'year',
-                                       'air_carrier', 'aircraft_type',
-                                       'prt', 'seats_available', 'passenger_occupancy_factor'
-                                   } | self.additional_fields
-                    filtered_record = {k: v for k, v in record.items() if k in valid_fields}
+                    numeric_fields = {
+                        'year', 'prt', 'seats_available', 'number_of_flights',
+                        'average_seats_available', 'pof', 'apof'
+                    }
+
+                    for field in numeric_fields:
+                        value = record.get(field)
+                        if isinstance(value, float) and math.isnan(value):
+                            record[field] = None
+                        elif isinstance(value, (int, float)) and pd.isna(value):
+                            record[field] = None
+                    filtered_record = {
+                        'from_city': record.get('from_city'),
+                        'to_city': record.get('to_city'),
+                        'year': record.get('year'),
+                        'air_carrier': record.get('air_carrier'),
+                        'aircraft_type': record.get('aircraft_type'),
+                        'prt': record.get('prt'),
+                        'seats_available': record.get('seats_available'),
+                        'passenger_occupancy_factor': record.get('passenger_occupancy_factor'),
+                        'from_state': record.get('from_state'),
+                        'to_state': record.get('to_state'),
+                        'from_territory': record.get('from_territory'),
+                        'to_territory': record.get('to_territory'),
+                        'number_of_flights': record.get('number_of_flights'),
+                        'average_seats_available': record.get('average_seats_available'),
+                        'average_payload_capacity': record.get('average_payload_capacity')
+                    }
 
                     required_fields = {'from_city', 'to_city', 'year', 'air_carrier', 'aircraft_type'}
                     missing_fields = [field for field in required_fields if field not in filtered_record]
@@ -174,7 +196,7 @@ class DataProcessor:
                             if v is not None and k not in required_fields
                         }
 
-                        numeric_fields = ['number_of_flights', 'average_seats_available', 'apof']
+                        numeric_fields = ['number_of_flights', 'average_seats_available', 'average_payload_capacity']
                         for field in numeric_fields:
                             if field in filtered_record and filtered_record[field] is not None:
                                 update_data[field] = filtered_record[field]

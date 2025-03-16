@@ -35,10 +35,13 @@ async def check_db_connection():
 async def start(processing_type: str):
     if not state.get_processing():
         state.update_start_time(datetime.now())
+
         if processing_type == 'passengers':
+            state.update_processing(True)
             asyncio.create_task(run_passengers())
 
         if processing_type == 'finances':
+            state.update_processing(True)
             asyncio.create_task(run_finances())
 
         db_status = await check_db_connection()

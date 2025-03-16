@@ -17,20 +17,20 @@ class ASGPassengersTable(Base):
     __tablename__ = "PassengersFlow"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    from_city = Column(String, nullable=False)
-    to_city = Column(String, nullable=False)
-    year = Column(Integer, nullable=False)
-    air_carrier = Column(String, nullable=False)
-    aircraft_type = Column(String, nullable=False)
+    from_city = Column(String, nullable=False, default=None)
+    to_city = Column(String, nullable=False, default=None)
+    year = Column(Integer, nullable=False, default=None)
+    air_carrier = Column(String, nullable=False, default=None)
+    aircraft_type = Column(String, nullable=False, default=None)
     from_state = Column(String, nullable=True, default=None)
     to_state = Column(String, nullable=True, default=None)
     from_territory = Column(String, nullable=True, default=None)
     to_territory = Column(String, nullable=True, default=None)
-    prt = Column(Integer, nullable=False)
+    prt = Column(Integer, nullable=True, default=None)
     number_of_flights = Column(Integer, nullable=True, default=None)
-    seats_available = Column(Integer, nullable=False)
+    seats_available = Column(Integer, nullable=True, default=None)
     average_seats_available = Column(Integer, nullable=True, default=None)
-    passenger_occupancy_factor = Column(Float, nullable=False)
+    passenger_occupancy_factor = Column(Float, nullable=True, default=None)
     average_payload_capacity = Column(Float, nullable=True, default=None)
 
 
