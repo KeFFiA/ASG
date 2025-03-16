@@ -173,7 +173,6 @@ async def run_finances():
         processor = FinancialDataProcessor(
             db_url=os.getenv("DATABASE_URL"),
             max_workers=os.cpu_count() * 2,
-            chunk_size=5000
         )
         logger.info("Data processor initialized")
 
@@ -181,20 +180,6 @@ async def run_finances():
         state.update_processing(True)
         await processor.process_files(file_paths=files_list)
         logger.info("Data processor loop completed")
-
-        logger.info(
-            f"Data processor loop status: \n"
-            f"Files with errors: {len(processor.errors['FAILED'])}\n {processor.errors['FAILED']}\n"
-            f"Data with errors: {len(processor.errors['FAILED_DATA'])}\n {processor.errors['FAILED_DATA']}\n"
-        )
-
-        if len(processor.errors['FAILED_DATA']) > 0 or len(processor.errors['FAILED']) > 0:
-            logger.info(
-                f"Start reprocessing {len(processor.errors['FAILED'])} files "
-                f"and {len(processor.errors['FAILED_DATA'])} records"
-            )
-            await processor.retry_failed_insertions()
-            state.update_processing(True)
 
     except Exception as e:
         logger.error(f"Application failed: {str(e)}")

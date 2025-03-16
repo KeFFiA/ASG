@@ -1,6 +1,6 @@
 import os
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy import MetaData, Column, Integer, String, Float, text, Numeric
+from sqlalchemy import MetaData, Column, Integer, String, Float, text, Numeric, UniqueConstraint
 from sqlalchemy.orm import declarative_base
 from dotenv import load_dotenv
 from Utills.Logger import logger
@@ -14,7 +14,7 @@ Base = declarative_base()
 
 
 class ASGPassengersTable(Base):
-    __tablename__ = "PassengersFlow"
+    __tablename__ = "passengersflow"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     from_city = Column(String, nullable=False, default=None)
@@ -35,7 +35,7 @@ class ASGPassengersTable(Base):
 
 
 class ASGFinancesTable(Base):
-    __tablename__ = 'Finances'
+    __tablename__ = 'finances'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     year = Column(Integer, nullable=False)
@@ -45,8 +45,17 @@ class ASGFinancesTable(Base):
     sub_account = Column(String(255), nullable=False)
     value = Column(Numeric(32, 2), nullable=False)
 
-    def __repr__(self):
-        return f"<FinancialRecord({self.year}, {self.air_carrier}, {self.financial_category}, {self.value})>"
+    __table_args__ = (
+        UniqueConstraint(
+            'year',
+            'air_carrier',
+            'financial_category',
+            'main_account',
+            'sub_account',
+            name='unique_finance_record'
+        ),
+    )
+
 
 async def check_and_create_table():
     async with engine.connect() as conn:
@@ -56,7 +65,7 @@ async def check_and_create_table():
         try:
             await conn.execute(text("""
                         CREATE UNIQUE INDEX IF NOT EXISTS passengers_flow_unique_idx 
-                        ON "PassengersFlow" 
+                        ON "passengersflow" 
                         USING btree (
                             (COALESCE(from_city, 'NULL')),
                             (COALESCE(to_city, 'NULL')),
