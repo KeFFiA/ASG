@@ -143,7 +143,7 @@ class Finder:
         state.update_error("FinancesData folder not found")
         raise FileNotFoundError("FinancesData folder not found")
 
-    async def all_data_finances(self) -> list[str] | None:
+    async def all_data_finances(self) -> list[str] | FileNotFoundError:
         """
         Finds and returns all .xlsx files in the FinancesData folder.
 

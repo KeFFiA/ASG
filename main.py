@@ -34,6 +34,7 @@ async def check_db_connection():
 @app.post("/start/{processing_type}")
 async def start(processing_type: str):
     if not state.get_processing():
+        state.update_error(None)
         state.update_start_time(datetime.now())
 
         if processing_type == 'passengers':
@@ -114,6 +115,8 @@ async def run_passengers():
         logger.info("Starting finder initialization")
         finder = Finder()
         files_list = await finder.all_data()
+        if files_list == FileNotFoundError:
+            return
         logger.info(f"Found {len(files_list)} files")
 
         logger.info("Starting data processor initialization")
@@ -161,7 +164,9 @@ async def run_finances():
 
         logger.info("Starting finder initialization")
         finder = Finder()
-        files_list = await finder.all_data()
+        files_list = await finder.all_data_finances()
+        if files_list == FileNotFoundError:
+            return
         logger.info(f"Found {len(files_list)} files")
 
         logger.info("Starting data processor initialization")

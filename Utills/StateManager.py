@@ -8,11 +8,11 @@ class StateManager:
 
     # Errors
     @classmethod
-    def update_error(cls, error_msg: str):
+    def update_error(cls, error_msg: str | None):
         cls.last_error = error_msg
 
     @classmethod
-    def get_last_error(cls) -> str:
+    def get_last_error(cls) -> str | None:
         return cls.last_error
 
     # Time
@@ -21,7 +21,7 @@ class StateManager:
         cls.start_time = start_time
 
     @classmethod
-    def get_start_time(cls) -> str|None:
+    def get_start_time(cls) -> str | None:
         try:
             return cls.start_time.strftime("%Y-%m-%d %H:%M:%S")
         except:
