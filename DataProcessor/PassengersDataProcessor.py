@@ -143,21 +143,16 @@ class DataProcessor:
         """Batch insert/update into DataBase"""
         if not records:
             return
-        filtered_records = []
         try:
-            for record in records:
-                try:
-                    numeric_fields = {
-                        'year', 'passengers_revenue_traffic', 'seats_available', 'nb._of_flights',
-                        'average_seats_available', 'passenger_occupancy_factor', 'average_payload_capacity'
-                    }
+            max_params_per_chunk = 30000
+            fields_per_record = 15
+            safe_chunk_size = max_params_per_chunk // fields_per_record
 
-                    for field in numeric_fields:
-                        value = record.get(field)
-                        if isinstance(value, float) and math.isnan(value):
-                            record[field] = None
-                        elif isinstance(value, (int, float)) and pd.isna(value):
-                            record[field] = None
+            for i in range(0, len(records), safe_chunk_size):
+                chunk = records[i:i + safe_chunk_size]
+
+                filtered_chunk = []
+                for record in chunk:
                     filtered_record = {
                         'from_city': record.get('from_city'),
                         'to_city': record.get('to_city'),
@@ -175,26 +170,23 @@ class DataProcessor:
                         'average_seats_available': record.get('average_seats_available'),
                         'average_payload_capacity': record.get('average_payload_capacity')
                     }
-                    filtered_records.append(filtered_record)
+                    filtered_chunk.append(filtered_record)
 
-                except KeyError as e:
-                    logger.warning(f"Skipping record due to missing data: {e}. Data: {record}")
-                    self.errors["FAILED_DATA"].append(record)
-
-            try:
-                stmt = insert(ASGPassengersTable).values(filtered_records)
+                stmt = insert(ASGPassengersTable).values(filtered_chunk)
                 stmt = stmt.on_conflict_do_update(
                     constraint='unique_passengers_record',
                     set_={c.name: c for c in stmt.excluded if c.name not in ['id']}
                 )
-                await session.execute(stmt)
 
-            except Exception as e:
-                logger.warning(f"Skipping records while inserting into DB: {e}. Data: {filtered_records}")
-                self.errors["FAILED_DATA"].append(filtered_records)
+                try:
+                    await session.execute(stmt)
+                    await session.commit()
+                except Exception as e:
+                    await session.rollback()
+                    logger.error(f"Error inserting chunk {i}-{i + len(chunk)}: {str(e)}")
+                    self.errors["FAILED_DATA"].extend(chunk)
 
         except Exception as e:
-            await session.rollback()
             logger.critical(f"Critical DB error: {str(e)}", exc_info=True)
             state.update_error(f"Critical DB error: {str(e)}")
             raise
