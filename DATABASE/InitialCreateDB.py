@@ -33,6 +33,17 @@ class ASGPassengersTable(Base):
     passenger_occupancy_factor = Column(Float, nullable=True, default=None)
     average_payload_capacity = Column(Float, nullable=True, default=None)
 
+    __table_args__ = (
+        UniqueConstraint(
+            'from_city',
+            'to_city',
+            'year',
+            'air_carrier',
+            'aircraft_type',
+            name='unique_passengers_record'
+        ),
+    )
+
 
 class ASGFinancesTable(Base):
     __tablename__ = 'finances'
@@ -61,22 +72,6 @@ async def check_and_create_table():
     async with engine.connect() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await conn.commit()
-
-        try:
-            await conn.execute(text("""
-                        CREATE UNIQUE INDEX IF NOT EXISTS passengers_flow_unique_idx 
-                        ON "passengersflow" 
-                        USING btree (
-                            (COALESCE(from_city, 'NULL')),
-                            (COALESCE(to_city, 'NULL')),
-                            year,
-                            (COALESCE(air_carrier, 'NULL')),
-                            (COALESCE(aircraft_type, 'NULL')),
-                            prt
-                        )
-                    """))
-        except Exception as e:
-            state.update_error(str(e))
-            logger.warning(f"Index creation warning: {str(e)}")
+        await conn.close()
 
     logger.info("Database initialization complete")

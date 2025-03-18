@@ -1,19 +1,20 @@
 import asyncio
 import math
+import warnings
+from pathlib import Path
 
 import numpy as np
-import psutil
-from pathlib import Path
-import warnings
-from openpyxl.styles.stylesheet import Stylesheet
 import pandas as pd
+import psutil
+from openpyxl.styles.stylesheet import Stylesheet
 from sqlalchemy import and_, select, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from tqdm import tqdm
 
-from Utills.Logger import logger
-from Utills import StateManager as state
 from DATABASE import ASGPassengersTable
+from Utills import StateManager as state
+from Utills.Logger import logger
 
 warnings.filterwarnings(
     'ignore',
@@ -32,23 +33,27 @@ class DataProcessor:
         self.errors: dict = {'AC_PASSED': [], "FAILED": [], "FAILED_DATA": []}
         self.additional_fields = {
             'from_state', 'to_state', 'from_territory', 'to_territory',
-            'number_of_flights', 'average_seats_available', 'average_payload_capacity'
+            'nb._of_flights', 'average_seats_available', 'average_payload_capacity'
         }
 
     async def process_files(self, file_paths: list[str]):
         """Basic file processing method"""
 
-        engine = create_async_engine(self.db_url)
+        engine = create_async_engine(self.db_url, pool_size=20,
+                                     max_overflow=50,
+                                     pool_timeout=60,
+                                     pool_recycle=1800,
+                                     pool_pre_ping=True)
         async_session = async_sessionmaker(
             engine,
             expire_on_commit=False,
+            autoflush=False,
             class_=AsyncSession
         )
 
         with tqdm(total=len(file_paths), desc="[PassengersFlow]File processing") as self.progress:
             tasks = [self._process_file(async_session, file_path) for file_path in file_paths]
             await asyncio.gather(*tasks)
-
         await engine.dispose()
 
     async def _process_file(self, async_session, file_path: str):
@@ -68,15 +73,13 @@ class DataProcessor:
                         None,
                         lambda: pd.read_excel(
                             file_path,
-                            engine='openpyxl'
+                            engine='openpyxl',
                         )
                     )
 
-                required_columns = ['air carrier']
-                missing_columns = [col for col in required_columns if col not in df.columns.str.strip().str.lower()]
+                missing_columns = [col for col in ['air carrier'] if col not in df.columns.str.strip().str.lower()]
 
                 if missing_columns:
-                    logger.debug(f"File {file_path} passed. Missing columns: {', '.join(missing_columns)}")
                     self.errors['AC_PASSED'].append(file_path)
                     self.progress.update(1)
                     return
@@ -86,9 +89,9 @@ class DataProcessor:
                 records = processed_df.to_dict('records')
 
                 # 4. Asynchronous writing to the DataBase
-                async with async_session() as session:
-                    for i in range(0, len(records), self.chunk_size):
-                        chunk = records[i:i + self.chunk_size]
+                for i in range(0, len(records), self.chunk_size):
+                    chunk = records[i:i + self.chunk_size]
+                    async with async_session() as session:
                         await self._insert_to_db(session, chunk)
                         await session.commit()
 
@@ -107,8 +110,8 @@ class DataProcessor:
 
         expected_columns = {
             'air_carrier', 'from_city', 'to_city', 'year', 'aircraft_type',
-            'prt', 'seats_available', 'passenger_occupancy_factor', 'from_state', 'to_state',
-            'from_territory', 'to_territory', 'number_of_flights',
+            'passengers_revenue_traffic', 'seats_available', 'passenger_occupancy_factor', 'from_state', 'to_state',
+            'from_territory', 'to_territory', 'nb._of_flights',
             'average_seats_available', 'average_payload_capacity'
         }
 
@@ -117,7 +120,8 @@ class DataProcessor:
                 df[col] = np.nan
 
         df = df.replace([np.nan, pd.NA, '', ' '], None)
-        int_columns = ['year', 'prt', 'seats_available', 'number_of_flights', 'average_seats_available']
+        int_columns = ['year', 'passengers_revenue_traffic', 'seats_available', 'nb._of_flights',
+                       'average_seats_available']
         for col in int_columns:
             df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64')
 
@@ -128,8 +132,8 @@ class DataProcessor:
 
         ordered_columns = [
             'from_city', 'to_city', 'year', 'air_carrier', 'aircraft_type',
-            'prt', 'seats_available', 'passenger_occupancy_factor', 'from_state', 'to_state',
-            'from_territory', 'to_territory', 'number_of_flights',
+            'passengers_revenue_traffic', 'seats_available', 'passenger_occupancy_factor', 'from_state', 'to_state',
+            'from_territory', 'to_territory', 'nb._of_flights',
             'average_seats_available', 'average_payload_capacity'
         ]
 
@@ -139,13 +143,13 @@ class DataProcessor:
         """Batch insert/update into DataBase"""
         if not records:
             return
-
+        filtered_records = []
         try:
             for record in records:
                 try:
                     numeric_fields = {
-                        'year', 'prt', 'seats_available', 'number_of_flights',
-                        'average_seats_available', 'pof', 'apof'
+                        'year', 'passengers_revenue_traffic', 'seats_available', 'nb._of_flights',
+                        'average_seats_available', 'passenger_occupancy_factor', 'average_payload_capacity'
                     }
 
                     for field in numeric_fields:
@@ -160,70 +164,43 @@ class DataProcessor:
                         'year': record.get('year'),
                         'air_carrier': record.get('air_carrier'),
                         'aircraft_type': record.get('aircraft_type'),
-                        'prt': record.get('prt'),
+                        'prt': record.get('passengers_revenue_traffic'),
                         'seats_available': record.get('seats_available'),
                         'passenger_occupancy_factor': record.get('passenger_occupancy_factor'),
                         'from_state': record.get('from_state'),
                         'to_state': record.get('to_state'),
                         'from_territory': record.get('from_territory'),
                         'to_territory': record.get('to_territory'),
-                        'number_of_flights': record.get('number_of_flights'),
+                        'number_of_flights': record.get('nb._of_flights'),
                         'average_seats_available': record.get('average_seats_available'),
                         'average_payload_capacity': record.get('average_payload_capacity')
                     }
-
-                    required_fields = {'from_city', 'to_city', 'year', 'air_carrier', 'aircraft_type'}
-                    missing_fields = [field for field in required_fields if field not in filtered_record]
-
-                    if missing_fields:
-                        raise KeyError(f"Missing fields: {', '.join(missing_fields)}")
-
-                    conditions = [
-                        ASGPassengersTable.from_city == filtered_record['from_city'],
-                        ASGPassengersTable.to_city == filtered_record['to_city'],
-                        ASGPassengersTable.year == filtered_record['year'],
-                        ASGPassengersTable.air_carrier == filtered_record['air_carrier'],
-                        ASGPassengersTable.aircraft_type == filtered_record['aircraft_type']
-                    ]
-
-                    existing = await session.execute(
-                        select(ASGPassengersTable).where(and_(*conditions)))
-                    existing = existing.scalars().first()
-
-                    if existing:
-                        update_data = {
-                            k: v for k, v in filtered_record.items()
-                            if v is not None and k not in required_fields
-                        }
-
-                        numeric_fields = ['number_of_flights', 'average_seats_available', 'average_payload_capacity']
-                        for field in numeric_fields:
-                            if field in filtered_record and filtered_record[field] is not None:
-                                update_data[field] = filtered_record[field]
-
-                        if update_data:
-                            await session.execute(
-                                update(ASGPassengersTable)
-                                .where(and_(*conditions))
-                                .values(**update_data)
-                            )
-                    else:
-                        new_record_data = {
-                            **filtered_record,
-                            **{field: None for field in self.additional_fields if field not in filtered_record}
-                        }
-                        session.add(ASGPassengersTable(**new_record_data))
+                    filtered_records.append(filtered_record)
 
                 except KeyError as e:
                     logger.warning(f"Skipping record due to missing data: {e}. Data: {record}")
                     self.errors["FAILED_DATA"].append(record)
 
-            await session.commit()
+            try:
+                stmt = insert(ASGPassengersTable).values(filtered_records)
+                stmt = stmt.on_conflict_do_update(
+                    constraint='unique_passengers_record',
+                    set_={c.name: c for c in stmt.excluded if c.name not in ['id']}
+                )
+                await session.execute(stmt)
+
+            except Exception as e:
+                logger.warning(f"Skipping records while inserting into DB: {e}. Data: {filtered_records}")
+                self.errors["FAILED_DATA"].append(filtered_records)
 
         except Exception as e:
             await session.rollback()
             logger.critical(f"Critical DB error: {str(e)}", exc_info=True)
             state.update_error(f"Critical DB error: {str(e)}")
+            raise
+
+        finally:
+            await session.close()
 
     async def retry_failed_insertions(self):
         """Reprocessing files and data not inserted into the database"""
@@ -259,6 +236,8 @@ class DataProcessor:
                 except Exception as e:
                     logger.warning(f"Error while re-inserting data: {e}. Data: {data}")
                     self.errors["FAILED_DATA"].append(data)
+                finally:
+                    await session.close()
 
         await engine.dispose()
 

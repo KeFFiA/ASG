@@ -29,7 +29,7 @@ class FinancialDataProcessor:
         }
 
     async def process_files(self, file_paths: List[str]):
-        with tqdm(total=len(file_paths), desc="Processing files") as pbar:
+        with tqdm(total=len(file_paths), desc="[Financial]Processing files") as pbar:
             tasks = [self._process_file_wrapper(fp, pbar) for fp in file_paths]
             await asyncio.gather(*tasks)
 
