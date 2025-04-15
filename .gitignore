@@ -1,3 +1,4 @@
 /.env
 /Logs/*.log
 /Start.py
+/test.py

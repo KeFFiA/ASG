@@ -1,1 +1,2 @@
-from DATABASE.InitialCreateDB import check_and_create_table, ASGPassengersTable, ASGFinancesTable
+from DATABASE.ICAO import *
+from DATABASE.ICAO_API import *

@@ -4,7 +4,6 @@ from sqlalchemy import MetaData, Column, Integer, String, Float, text, Numeric, 
 from sqlalchemy.orm import declarative_base
 from dotenv import load_dotenv
 from Utills.Logger import logger
-from Utills import StateManager as state
 
 load_dotenv()
 
@@ -66,6 +65,7 @@ class ASGFinancesTable(Base):
             name='unique_finance_record'
         ),
     )
+
 
 
 async def check_and_create_table():
