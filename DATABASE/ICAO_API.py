@@ -103,23 +103,25 @@ class LocationIndicator(Base):
     codcoun = Column(String)
     IATA_Code = Column(String)
 
-    __table_args__ = (
-        UniqueConstraint(
-
-        )
-    )
 
 class AerodromeLocation(Base):
     __tablename__ = 'aerodrome_locations'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    country_name = Column(String)
-    country_code = Column(String)
-    airport_name = Column(String)
-    city_name = Column(String)
+    countryName = Column(String)
+    countryCode = Column(String)
+    airportName = Column(String)
+    cityName = Column(String)
     latitude = Column(Float)
     longitude = Column(Float)
-    airport_code = Column(String)
+    airportCode = Column(String)
     geometry = Column(String)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'airportCode', 'countryCode',
+            name='uq_aerodrome_location_unique'
+        ),
+    )
 
 class InternationalAerodrome(Base):
     __tablename__ = 'international_aerodromes'

@@ -1012,3 +1012,4 @@ class DatabaseUniqueColumns(Enum):
     AIRCRAFT_TYPE_DESIGNATORS = ["manufacturer_code", "model_no", "model_name", "model_version"]
     OPERATOR_3_LETTERS = ["operatorCode"]
     OPERATOR_RISK_PROFILE = ["operatorCode", "aircraft", "models"]
+    AERODROME_LOCATION_INDICATORS = ["airportCode", "countryCode"]

@@ -68,7 +68,7 @@ async def risk_profile():
             )
 
 
-async def risk_profile():
+async def aerodrome_location():
     async with async_session() as session:
         client = ICAOApiClient(session)
         stmt = select(CountriesISO.alpha3_code)
@@ -78,13 +78,13 @@ async def risk_profile():
         for code in codes:
             if count < 1:
                 await client.fetch_and_store(
-                    endpoint=ICAOEndpoints.OPERATOR_RISK_PROFILE,
-                    model=OperatorRiskProfile,
-                    conflict_enums=DatabaseUniqueColumns.OPERATOR_RISK_PROFILE,
-                    states=code,
+                    endpoint=ICAOEndpoints.AERODROME_LOCATION_INDICATORS,
+                    model=AerodromeLocation,
+                    conflict_enums=DatabaseUniqueColumns.AERODROME_LOCATION_INDICATORS,
+                    state=code,
                 )
                 count += 1
 
 
 if __name__ == "__main__":
-    asyncio.run(risk_profile())
+    asyncio.run(aerodrome_location())
