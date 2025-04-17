@@ -990,6 +990,8 @@ states_ISO = [
   }
 ]
 
+from enum import Enum
+
 class ICAOEndpoints(str, Enum):
     MANUFACTURER_LIST = "manufacturer-list"
     AIRCRAFT_TYPE_DESIGNATORS = "type-list"
@@ -1004,7 +1006,21 @@ class ICAOEndpoints(str, Enum):
     METAR_PROVIDER_LOCATIONS = "metar-stations-list"
     ACCIDENTS = "accidents"
     SAFETY_RELATED_OCCURRENCES = "any"
-    INCIDENTS = "incidents"
+    INCIDENTS = "incident"
+    STATE_SAFETY_MARGINS = "safety-margin-stats"
+    SSP_FOUNDATION_STATISTICS = "eisummary-stats"
+    AERODROME_STATISTICS = "aerodrome-stats"
+    OPERATOR_STATISTICS = "operator-stats"
+    CONNECTIONS = "connection-stats"
+    STATE_TRAFFIC_STATISTICS = "state-departure-stats"
+    CAAHR = "caa-hr"
+    SAFETY_PARTNER_PROGRAMS = "safety-partner-stats"
+    SIGNIFICANT_SAFETY_CONCERNS = "ssc-list"
+    ICAO_MEMBER_STATE = "icao-member-states"
+    STATE_OF_REGISTRY = "registration-states"
+    ASIAPPRIORITIZATION = "asiap-stats"
+
+
 
 
 class DatabaseUniqueColumns(Enum):
@@ -1013,3 +1029,18 @@ class DatabaseUniqueColumns(Enum):
     OPERATOR_3_LETTERS = ["operatorCode"]
     OPERATOR_RISK_PROFILE = ["operatorCode", "aircraft", "models"]
     AERODROME_LOCATION_INDICATORS = ["airportCode", "countryCode"]
+    INTERNATIONAL_AERODROMES = ["airportCode", "countryCode"]
+    OPERATIONAL_AERODROME_INFORMATION = ["airportCode"]
+    AIRPORT_PBN_IMPLEMENTATION = ["airportCode"]
+    INTERNATIONAL_AIRPORT_SAFETY_CHARACTERISTICS = ["airportCode"]
+    METAR_PROVIDER_LOCATIONS = ["airportCode"]
+    ACCIDENTS = ['Date', 'Location', 'Model', 'Registration', 'StateOfOccurrence']
+    SAFETY_RELATED_OCCURRENCES = ['Date', 'Location', 'Model', 'Registration', 'StateOfOccurrence']
+    INCIDENTS = ['Date', 'Location', 'Model', 'Registration', 'StateOfOccurrence']
+    ICAO_MEMBER_STATE = ["UN_numerical_code"]
+    STATE_OF_REGISTRY = ["UN_numerical_code"]
+    ASIAPPRIORITIZATION = ["UN_numerical_code"]
+    SSP_FOUNDATION_STATISTICS = ["State"]
+    AERODROME_STATISTICS = ["State"]
+    OPERATOR_STATISTICS = ["State"]
+

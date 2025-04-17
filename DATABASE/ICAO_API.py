@@ -12,6 +12,7 @@ engine = create_async_engine(url=os.getenv("DATABASE_URL_API"), echo=False)
 metadata = MetaData()
 Base = declarative_base()
 
+
 class CountriesISO(Base):
     __tablename__ = "countries_iso"
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -21,10 +22,12 @@ class CountriesISO(Base):
     def __repr__(self):
         return f"<Country(name='{self.name}', code='{self.alpha3_code}')>"
 
+
 class Manufacturer(Base):
     __tablename__ = 'manufacturers'
     manufacturer_code = Column(String, primary_key=True)
     types = Column(Integer)
+
 
 class AircraftType(Base):
     __tablename__ = 'aircraft_types'
@@ -48,6 +51,7 @@ class AircraftType(Base):
         ),
     )
 
+
 class Operator(Base):
     __tablename__ = 'operators'
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -58,6 +62,7 @@ class Operator(Base):
     telephonyName = Column(String)
     LastModified = Column(String)
     AIRAC = Column(String)
+
 
 class OperatorRiskProfile(Base):
     __tablename__ = 'operator_risk_profiles'
@@ -80,13 +85,13 @@ class OperatorRiskProfile(Base):
     connections = Column(Integer)
     destinations = Column(Integer)
 
-
     __table_args__ = (
         UniqueConstraint(
             'operatorCode', 'aircraft', 'models',
             name='uq_risk_profile_unique'
         ),
     )
+
 
 class LocationIndicator(Base):
     __tablename__ = 'location_indicators'
@@ -123,17 +128,26 @@ class AerodromeLocation(Base):
         ),
     )
 
+
 class InternationalAerodrome(Base):
     __tablename__ = 'international_aerodromes'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    country_name = Column(String)
-    country_code = Column(String)
-    airport_name = Column(String)
-    city_name = Column(String)
+    countryName = Column(String)
+    countryCode = Column(String)
+    airportName = Column(String)
+    cityName = Column(String)
     latitude = Column(Float)
     longitude = Column(Float)
-    airport_code = Column(String)
+    airportCode = Column(String)
     geometry = Column(String)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'airportCode', 'countryCode',
+            name='uq_international_aerodrome_unique'
+        ),
+    )
+
 
 class OperationalAerodromeInfo(Base):
     __tablename__ = 'operational_aerodrome_information'
@@ -147,8 +161,18 @@ class OperationalAerodromeInfo(Base):
     proc_runways = Column(Integer)
     countryCode = Column(String)
     iatacode = Column(String)
-    is_international = Column(String)
+    is_international = Column(Boolean)
     countryName = Column(String)
+    airportCode = Column(String)
+    airportName = Column(String)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'airportCode',
+            name='uq_operational_aerodrome_info_unique'
+        ),
+    )
+
 
 class AirportPBNImplementation(Base):
     __tablename__ = 'airport_pbn_implementation'
@@ -156,19 +180,26 @@ class AirportPBNImplementation(Base):
     countryName = Column(String)
     countryCode = Column(String)
     airportName = Column(String)
-    cityName = Column(String)
+    cityName = Column(String, default=None)
     airportCode = Column(String)
-    nb_instr_vg_runways = Column(Integer)
-    nb_instr_runways = Column(Integer)
-    pbn_implementation = Column(Integer)
-    pc_pbn_lnav = Column(Integer)
-    pc_pbn_lnavvnav = Column(Integer)
-    pc_pbn_lpv = Column(Integer)
-    pc_pbn_rnpar = Column(Integer)
-    pc_pbn_unknown = Column(Integer)
+    nb_instr_vg_runways = Column(Integer, default=None)
+    nb_instr_runways = Column(Integer, default=None)
+    pbn_implementation = Column(Integer, default=None)
+    pc_pbn_lnav = Column(Integer, default=None)
+    pc_pbn_lnavvnav = Column(Integer, default=None)
+    pc_pbn_lpv = Column(Integer, default=None)
+    pc_pbn_rnpar = Column(Integer, default=None)
+    pc_pbn_unknown = Column(Integer, default=None)
     Year = Column(Integer)
-    State = Column(String)
-    IsInternational = Column(String)
+    IsInternational = Column(Boolean)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'airportCode',
+            name='uq_airport_pbn_imp_unique'
+        ),
+    )
+
 
 class InternationalAirportSafety(Base):
     __tablename__ = 'international_airport_safety'
@@ -180,15 +211,23 @@ class InternationalAirportSafety(Base):
     airportCode = Column(String)
     airnavigation_ei = Column(Float)
     airnavigation_margin = Column(Float)
-    hasFullInstrumentVG = Column(String)
-    hasInstrumentVG = Column(String)
-    hasInstrument = Column(String)
+    hasFullInstrumentVG = Column(Boolean)
+    hasInstrumentVG = Column(Boolean)
+    hasInstrument = Column(Boolean)
     IMC = Column(Float)
     elevation = Column(Float)
-    TerrainAbove300m = Column(String)
-    TerrainAbove600m = Column(String)
-    TerrainAbove900m = Column(String)
-    hasIntersectingRWYs = Column(String)
+    TerrainAbove300m = Column(Float)
+    TerrainAbove600m = Column(Float)
+    TerrainAbove900m = Column(Float)
+    hasIntersectingRWYs = Column(Boolean)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'airportCode',
+            name='uq_int_airport_safety_unique'
+        ),
+    )
+
 
 class METARProviderLocation(Base):
     __tablename__ = 'metar_provider_location'
@@ -196,8 +235,18 @@ class METARProviderLocation(Base):
     latitude = Column(Float)
     longitude = Column(Float)
     countryCode = Column(String)
-    is_international = Column(String)
+    is_international = Column(Boolean)
     countryName = Column(String)
+    airportName = Column(String)
+    airportCode = Column(String)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'airportCode',
+            name='uq_metar_provider_unique'
+        ),
+    )
+
 
 class Accident(Base):
     __tablename__ = 'accidents'
@@ -221,10 +270,19 @@ class Accident(Base):
     Helicopter = Column(Boolean)
     Airplane = Column(Boolean)
     Engines = Column(Integer)
-    EngineType = Column(Integer)
+    EngineType = Column(String)
     Official = Column(String)
+    Risk = Column(String)
     OccCats = Column(String)
     Year = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'Date', 'Location', 'Model', 'Registration', 'StateOfOccurrence',
+            name='uq_accident_unique'
+        ),
+    )
+
 
 class SafetyRelatedOccurrence(Base):
     __tablename__ = 'safety_related_occurrences'
@@ -248,10 +306,19 @@ class SafetyRelatedOccurrence(Base):
     Helicopter = Column(Boolean)
     Airplane = Column(Boolean)
     Engines = Column(Integer)
-    EngineType = Column(Integer)
+    EngineType = Column(String)
     Official = Column(String)
     OccCats = Column(String)
+    Risk = Column(String)
     Year = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'Date', 'Location', 'Model', 'Registration', 'StateOfOccurrence',
+            name='uq_safety_related_occ_unique'
+        ),
+    )
+
 
 class Incident(Base):
     __tablename__ = 'incidents'
@@ -275,9 +342,282 @@ class Incident(Base):
     Helicopter = Column(Boolean)
     Airplane = Column(Boolean)
     Engines = Column(Integer)
-    EngineType = Column(Integer)
+    EngineType = Column(String)
     Official = Column(String)
+    OccCats = Column(String)
+    Risk = Column(String)
     Year = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'Date', 'Location', 'Model', 'Registration', 'StateOfOccurrence',
+            name='uq_incidents_unique'
+        ),
+    )
+
+
+class ICAOMemberState(Base):
+    __tablename__ = "icao_member_states"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    RASG = Column(String, index=True)
+    iso_2_code = Column(String(2))
+    iso_3_code = Column(String(3), index=True)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    UN_numerical_code = Column(String)
+    UN_region = Column(String)
+    UN_state_name = Column(String)
+    UN_state_name_html = Column(String)
+    ICAO_regional_office = Column(String)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'UN_numerical_code',
+            name='uq_members_unique'
+        ),
+    )
+
+class StateOfRegistry(Base):
+    __tablename__ = "state_of_registries"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    RASG = Column(String, index=True)
+    iso_2_code = Column(String(2))
+    iso_3_code = Column(String(3), index=True)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    UN_numerical_code = Column(String)
+    UN_region = Column(String)
+    UN_state_name = Column(String)
+    UN_state_name_html = Column(String)
+    ICAO_regional_office = Column(String)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'UN_numerical_code',
+            name='uq_state_of_registry_unique'
+        ),
+    )
+
+
+class ASIAPPrioritization(Base):
+    __tablename__ = "asiap_prioritization"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    iso_2_code = Column(String(2))
+    iso_3_code = Column(String(3), index=True)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    UN_numerical_code = Column(String)
+    UN_region = Column(String)
+    UN_state_name = Column(String)
+    UN_state_name_html = Column(String)
+    ro = Column(String, index=True)
+    wgi_year = Column(Integer)
+    gdp = Column(Float)
+    gdp_pcapita = Column(Float)
+    corruption = Column(Float)
+    stability = Column(Float)
+    operations_ei = Column(Float)
+    support_ei = Column(Float)
+    airnavigation_ei = Column(Float)
+    operations_margin = Column(Float)
+    support_margin = Column(Float)
+    airnavigation_margin = Column(Float)
+    isSSC = Column(Boolean)
+    SSC_area = Column(String)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'UN_numerical_code',
+            name='uq_asiap_unique'
+        ),
+    )
+
+
+class StateSafetyMargin(Base):
+    __tablename__ = "state_safety_margins"
+
+    id = Column(Integer, primary_key=True)
+    State = Column(String(3), index=True)
+    Name = Column(String)
+    operations_ei = Column(Float)
+    support_ei = Column(Float)
+    airnavigation_ei = Column(Float)
+    departures = Column(Integer)
+    flagcarrier_flights = Column(Integer)
+    operations_margin = Column(Float)
+    support_margin = Column(Float)
+    airnavigation_margin = Column(Float)
+    operations_index = Column(Float)
+    support_index = Column(Float)
+    airnavigation_index = Column(Float)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'State',
+            name='uq_state_safety_unique'
+        ),
+    )
+
+
+class SSPFoundation(Base):
+    __tablename__ = "ssp_foundation"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    State = Column(String(3), index=True)
+    OverallSSPFoundation = Column(Float)
+    OverallCapCompleted = Column(Float)
+    OverallValidated = Column(Float)
+    Accidentandincidentinvestigation = Column(Float)
+    Delegation = Column(Float)
+    Enforcement = Column(Float)
+    Exemptions = Column(Float)
+    Hazardidentificationandsafetyriskassessment = Column(Float)
+    Licensingcertificationauthorizationandapprovalobligations = Column(Float)
+    Managementofsafetyrisks = Column(Float)
+    Primaryaviationlegislation = Column(Float)
+    Qualifiedtechnicalpersonnel = Column(Float)
+    Resources = Column(Float)
+    Specificoperatingregulations = Column(Float)
+    StateAuthorities = Column(Float)
+    StateOrganizationalStructure = Column(Float)
+    Statefunctions = Column(Float)
+    Statesafetypromotion = Column(Float)
+    Surveillanceobligations = Column(Float)
+    Technicalguidancetoolsandprovisionofsafetycriticalinformation = Column(Float)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'State',
+            name='uq_ssp_foundation_unique'
+        ),
+    )
+
+
+class AerodromeStatistic(Base):
+    __tablename__ = "aerodrome_statistics"
+
+    id = Column(Integer, primary_key=True)
+    State = Column(String(3), index=True)
+    Name = Column(String)
+    Year = Column(Integer)
+    Departures = Column(Integer)
+    Int_departures = Column(Integer)
+    All_active_aerodromes = Column(Integer)
+    Int_active_aerodromes = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'State',
+            name="uq_aerodrome_statistic_unique"
+        )
+    )
+
+
+class OperatorStatistic(Base):
+    __tablename__ = "operator_statistics"
+
+    id = Column(Integer, primary_key=True)
+    State = Column(String(3), index=True)
+    Name = Column(String)
+    Year = Column(Integer)
+    Flights = Column(Integer)
+    Int_flights = Column(Integer)
+    All_active_operators = Column(Integer)
+    Int_active_operators = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'State',
+            name="uq_operator_statistic_unique"
+        )
+    )
+
+
+class Connection(Base):
+    __tablename__ = "connections"
+
+    id = Column(Integer, primary_key=True)
+    state_a = Column(String(3), index=True)
+    name_a = Column(String)
+    state_b = Column(String(3))
+    name_b = Column(String)
+    year = Column(Integer)
+    flights = Column(Integer)
+    state_a_carrier_flights = Column(Integer)
+    state_b_carrier_flights = Column(Integer)
+    other_state_carrier_flights = Column(Integer)
+
+
+class StateTrafficStatistic(Base):
+    __tablename__ = "state_traffic_statistics"
+
+    id = Column(Integer, primary_key=True)
+    state = Column(String(3), index=True)
+    name = Column(String)
+    year = Column(Integer)
+    departures = Column(Integer)
+    domestic = Column(Integer)
+    international = Column(Integer)
+    flagcarrier_flights = Column(Integer)
+
+
+class CAAHR(Base):
+    __tablename__ = "caahr"
+
+    id = Column(Integer, primary_key=True)
+    iso_2_code = Column(String(2), index=True)
+    iso_3_code = Column(String(3), index=True)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    un_numerical_code = Column(String)
+    un_region = Column(String)
+    un_state_name = Column(String)
+    un_state_name_html = Column(String)
+    ro = Column(String)
+    aeroplane_cat_ops = Column(Integer)
+    aeroplane_used_cat = Column(Integer)
+    approved_maintenance = Column(Integer)
+    ifr_aerodromes = Column(Integer)
+    atc_training_org = Column(Integer)
+    atc_licenses = Column(Integer)
+    fto = Column(Integer)
+    mto = Column(Integer)
+    private_licences = Column(Integer)
+    professional_licences = Column(Integer)
+    maintenance_licences = Column(Integer)
+    total_air = Column(Integer)
+    total_aga = Column(Integer)
+    total_ans = Column(Integer)
+    total_pel = Column(Integer)
+    total_ops = Column(Integer)
+    is_original_survey = Column(Boolean)
+
+
+class SafetyPartnerProgram(Base):
+    __tablename__ = "safety_partner_programs"
+
+    id = Column(Integer, primary_key=True)
+    state = Column(String(3), index=True)
+    name = Column(String)
+    iosa_operators = Column(Integer)
+    is_faa_cat2 = Column(Boolean)
+    has_eu_restrictions = Column(Boolean)
+    faa_update = Column(String)
+    eu_update = Column(String)
+
+
+class SignificantSafetyConcern(Base):
+    __tablename__ = "significant_safety_concerns"
+
+    id = Column(Integer, primary_key=True)
+    state = Column(String(3), index=True)
+    name = Column(String)
+    year = Column(Integer)
+    area = Column(String)
 
 
 async def check_and_create_table_api():

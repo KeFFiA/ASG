@@ -15,6 +15,15 @@ async_session = async_sessionmaker(
     expire_on_commit=False,
 )
 
+year_list = [2021, 2022, 2023, 2024, 2025]
+
+async def countries_codes():
+    async with async_session() as session:
+        stmt = select(CountriesISO.alpha3_code)
+        result = await session.execute(stmt)
+        codes = result.scalars().all()
+        return codes
+
 async def manufacturer():
     for manufacture in manufacturer_list:
         async with async_session() as session:
@@ -38,13 +47,10 @@ async def type_designators():
                 manufacturer=manufacture
             )
 
-async def operators():
+async def operators(codes = countries_codes()):
     async with async_session() as session:
         client = ICAOApiClient(session)
-        stmt = select(CountriesISO.alpha3_code)
-        result = await session.execute(stmt)
-        codes = result.scalars().all()
-        for code in codes:
+        for code in await codes:
             await client.fetch_and_store(
                 endpoint=ICAOEndpoints.OPERATOR_3_LETTER_CODES,
                 model=Operator,
@@ -53,13 +59,10 @@ async def operators():
             )
 
 
-async def risk_profile():
+async def risk_profile(codes = countries_codes()):
     async with async_session() as session:
         client = ICAOApiClient(session)
-        stmt = select(CountriesISO.alpha3_code)
-        result = await session.execute(stmt)
-        codes = result.scalars().all()
-        for code in codes:
+        for code in await codes:
             await client.fetch_and_store(
                 endpoint=ICAOEndpoints.OPERATOR_RISK_PROFILE,
                 model=OperatorRiskProfile,
@@ -68,23 +71,139 @@ async def risk_profile():
             )
 
 
-async def aerodrome_location():
+async def aerodrome_location(codes = countries_codes()):
     async with async_session() as session:
         client = ICAOApiClient(session)
-        stmt = select(CountriesISO.alpha3_code)
-        result = await session.execute(stmt)
-        codes = result.scalars().all()
-        count = 0
-        for code in codes:
-            if count < 1:
+        for code in await codes:
+            await client.fetch_and_store(
+                endpoint=ICAOEndpoints.AERODROME_LOCATION_INDICATORS,
+                model=AerodromeLocation,
+                conflict_enums=DatabaseUniqueColumns.AERODROME_LOCATION_INDICATORS,
+                state=code,
+            )
+
+
+async def international_aerodromes(codes = countries_codes()):
+    async with async_session() as session:
+        client = ICAOApiClient(session)
+        for code in await codes:
+            await client.fetch_and_store(
+                endpoint=ICAOEndpoints.INTERNATIONAL_AERODROMES,
+                model=InternationalAerodrome,
+                conflict_enums=DatabaseUniqueColumns.INTERNATIONAL_AERODROMES,
+                states=code,
+            )
+
+
+async def operational_aerodrome_info(codes = countries_codes()):
+    async with async_session() as session:
+        client = ICAOApiClient(session)
+        for code in await codes:
+            await client.fetch_and_store(
+                endpoint=ICAOEndpoints.OPERATIONAL_AERODROME_INFORMATION,
+                model=OperationalAerodromeInfo,
+                conflict_enums=DatabaseUniqueColumns.OPERATIONAL_AERODROME_INFORMATION,
+                states=code,
+            )
+
+
+async def airport_pbn_impl(codes = countries_codes()):
+    async with async_session() as session:
+        client = ICAOApiClient(session)
+        for code in await codes:
+            await client.fetch_and_store(
+                endpoint=ICAOEndpoints.AIRPORT_PBN_IMPLEMENTATION,
+                model=AirportPBNImplementation,
+                conflict_enums=DatabaseUniqueColumns.AIRPORT_PBN_IMPLEMENTATION,
+                states=code,
+            )
+
+
+async def international_airport_safety(codes = countries_codes()):
+    async with async_session() as session:
+        client = ICAOApiClient(session)
+        for code in await codes:
+            await client.fetch_and_store(
+                endpoint=ICAOEndpoints.INTERNATIONAL_AIRPORT_SAFETY_CHARACTERISTICS,
+                model=InternationalAirportSafety,
+                conflict_enums=DatabaseUniqueColumns.INTERNATIONAL_AIRPORT_SAFETY_CHARACTERISTICS,
+                states=code,
+            )
+
+
+async def metar_provider(codes = countries_codes()):
+    async with async_session() as session:
+        client = ICAOApiClient(session)
+        for code in await codes:
+            await client.fetch_and_store(
+                endpoint=ICAOEndpoints.METAR_PROVIDER_LOCATIONS,
+                model=METARProviderLocation,
+                conflict_enums=DatabaseUniqueColumns.INTERNATIONAL_AIRPORT_SAFETY_CHARACTERISTICS,
+                states=code,
+            )
+
+
+async def accident(codes = countries_codes()):
+    async with async_session() as session:
+        client = ICAOApiClient(session)
+        for code in await codes:
+            for year in year_list:
                 await client.fetch_and_store(
-                    endpoint=ICAOEndpoints.AERODROME_LOCATION_INDICATORS,
-                    model=AerodromeLocation,
-                    conflict_enums=DatabaseUniqueColumns.AERODROME_LOCATION_INDICATORS,
-                    state=code,
+                    endpoint=ICAOEndpoints.ACCIDENTS,
+                    model=Accident,
+                    conflict_enums=DatabaseUniqueColumns.ACCIDENTS,
+                    StateOfOccurrence=code,
+                    Year=year
                 )
-                count += 1
+
+
+async def safety_related_occurrence(codes = countries_codes()):
+    async with async_session() as session:
+        client = ICAOApiClient(session)
+        for code in await codes:
+            for year in year_list:
+                await client.fetch_and_store(
+                    endpoint=ICAOEndpoints.SAFETY_RELATED_OCCURRENCES,
+                    model=SafetyRelatedOccurrence,
+                    conflict_enums=DatabaseUniqueColumns.SAFETY_RELATED_OCCURRENCES,
+                    StateOfOccurrence=code,
+                    Year=year
+                )
+
+
+async def incident(codes = countries_codes()):
+    async with async_session() as session:
+        client = ICAOApiClient(session)
+        count = 0
+        for code in await codes:
+            for year in year_list:
+                if count < 1:
+                    await client.fetch_and_store(
+                        endpoint=ICAOEndpoints.INCIDENTS,
+                        model=Incident,
+                        conflict_enums=DatabaseUniqueColumns.INCIDENTS,
+                        StateOfOccurrence=code,
+                        Year=year
+                    )
+                    count += 1
+
+
+async def current_fleet(codes = countries_codes()):
+    async with async_session() as session:
+        client = ICAOApiClient(session)
+        count = 0
+        for code in await codes:
+            for year in year_list:
+                if count < 1:
+                    await client.fetch_and_store(
+                        endpoint=ICAOEndpoints.,
+                        model=Incident,
+                        conflict_enums=DatabaseUniqueColumns.INCIDENTS,
+                        StateOfOccurrence=code,
+                        Year=year
+                    )
+                    count += 1
 
 
 if __name__ == "__main__":
-    asyncio.run(aerodrome_location())
+    asyncio.run(incident())

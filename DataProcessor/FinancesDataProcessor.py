@@ -161,14 +161,21 @@ class FinancialDataProcessor:
             return
 
         try:
-            stmt = insert(ASGFinancesTable).values(records)
-            stmt = stmt.on_conflict_do_update(
-                constraint='unique_finance_record',
-                set_={"value": stmt.excluded.value}
-            )
+            max_params_per_chunk = 30000
+            fields_per_record = 6
+            safe_chunk_size = max_params_per_chunk // fields_per_record
 
-            await session.execute(stmt)
-            await session.commit()
+            for i in range(0, len(records), safe_chunk_size):
+                chunk = records[i:i + safe_chunk_size]
+
+                stmt = insert(ASGFinancesTable).values(chunk)
+                stmt = stmt.on_conflict_do_update(
+                    constraint='unique_finance_record',
+                    set_={"value": stmt.excluded.value}
+                )
+
+                await session.execute(stmt)
+                await session.commit()
 
         except Exception as e:
             await session.rollback()

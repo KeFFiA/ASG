@@ -82,7 +82,6 @@ async def start(processing_type: str):
 
         return status
 
-
 @app.get("/health")
 async def health_check():
     db_status = await check_db_connection()

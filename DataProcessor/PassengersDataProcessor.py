@@ -1,5 +1,4 @@
 import asyncio
-import math
 import warnings
 from pathlib import Path
 
@@ -7,7 +6,7 @@ import numpy as np
 import pandas as pd
 import psutil
 from openpyxl.styles.stylesheet import Stylesheet
-from sqlalchemy import and_, select, update
+from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from tqdm import tqdm
@@ -175,7 +174,30 @@ class DataProcessor:
                 stmt = insert(ASGPassengersTable).values(filtered_chunk)
                 stmt = stmt.on_conflict_do_update(
                     constraint='unique_passengers_record',
-                    set_={c.name: c for c in stmt.excluded if c.name not in ['id']}
+                    set_={
+                        # Если новое значение равно NULL, оставляем старое
+                        'prt': func.coalesce(stmt.excluded.prt, ASGPassengersTable.prt),
+                        'seats_available': func.coalesce(stmt.excluded.seats_available,
+                                                         ASGPassengersTable.seats_available),
+                        'passenger_occupancy_factor': func.coalesce(stmt.excluded.passenger_occupancy_factor,
+                                                                    ASGPassengersTable.passenger_occupancy_factor),
+                        'number_of_flights': func.coalesce(stmt.excluded.number_of_flights,
+                                                           ASGPassengersTable.number_of_flights),
+                        'average_seats_available': func.coalesce(stmt.excluded.average_seats_available,
+                                                                 ASGPassengersTable.average_seats_available),
+                        'average_payload_capacity': func.coalesce(stmt.excluded.average_payload_capacity,
+                                                                  ASGPassengersTable.average_payload_capacity),
+                        'from_state': func.coalesce(stmt.excluded.from_state, ASGPassengersTable.from_state),
+                        'to_state': func.coalesce(stmt.excluded.to_state, ASGPassengersTable.to_state),
+                        'from_territory': func.coalesce(stmt.excluded.from_territory,
+                                                        ASGPassengersTable.from_territory),
+                        'to_territory': func.coalesce(stmt.excluded.to_territory, ASGPassengersTable.to_territory),
+                        'from_city': stmt.excluded.from_city,
+                        'to_city': stmt.excluded.to_city,
+                        'year': stmt.excluded.year,
+                        'air_carrier': stmt.excluded.air_carrier,
+                        'aircraft_type': stmt.excluded.aircraft_type
+                    }
                 )
 
                 try:
@@ -226,7 +248,7 @@ class DataProcessor:
                     data = entry["data"]
                     await self._insert_to_db(session, [data])
                 except Exception as e:
-                    logger.warning(f"Error while re-inserting data: {e}. Data: {data}")
+                    logger.warning(f"Error while re-inserting data: {e}. Data: {entry["data"]}")
                     self.errors["FAILED_DATA"].append(data)
                 finally:
                     await session.close()

@@ -18,21 +18,20 @@ ssl_context.verify_mode = ssl.CERT_NONE
 
 load_dotenv()
 
-ICAO_API_KEY = os.getenv("ICAO_API_KEY")
-BASE_URL = "https://applications.icao.int/dataservices/api"
-
 
 class ICAOApiClient:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.headers = {"Accept": "application/json"}
+        self.ICAO_API_KEY = os.getenv("ICAO_API_KEY")
+        self.BASE_URL = "https://applications.icao.int/dataservices/api"
 
     async def _fetch(self, endpoint: str, params: dict) -> list[dict]:
-        params["api_key"] = ICAO_API_KEY
+        params["api_key"] = self.ICAO_API_KEY
         params["format"] = "json"
         params.pop("callback", None)
 
-        url = f"{BASE_URL}/{endpoint}"
+        url = f"{self.BASE_URL}/{endpoint}"
         logger.info(f"Sending request to: {url} with params: {params}")
 
         try:
@@ -50,6 +49,10 @@ class ICAOApiClient:
             logger.exception(f"❌ Unexpected error while fetching data from {url}: {e}")
             raise
 
+    def _chunked(self, iterable, size):
+        for i in range(0, len(iterable), size):
+            yield iterable[i:i + size]
+
     async def _save_to_db(self, data: list[dict], model: Type[Any], conflict_enums: Enum):
         if not data:
             logger.warning("⚠️ No data to save to database.")
@@ -59,29 +62,53 @@ class ICAOApiClient:
             for item in data:
                 corrected_item = {}
                 for key, value in item.items():
-                    corrected_key = key.replace(" ", "")
+                    corrected_key = key.strip().replace(" ", "").replace(",", "").replace("-", "")
+                    if value == "":
+                        value = None
+                    if isinstance(value, (dict, list)):
+                        try:
+                            value = json.dumps(value, ensure_ascii=False)
+                        except Exception as json_error:
+                            logger.warning(f"⚠️ Failed to convert {corrected_key} to JSON: {json_error}")
                     corrected_item[corrected_key] = value
                 corrected_data.append(corrected_item)
 
+            all_keys = set()
+            for item in corrected_data:
+                all_keys.update(item.keys())
+            for item in corrected_data:
+                for key in all_keys:
+                    item.setdefault(key, None)
+
             conflict_columns = conflict_enums.value
-            update_columns = [col.replace(" ", "") for col in corrected_data[0].keys()
-                              if col not in conflict_columns]
+            valid_columns = set(c.name for c in model.__table__.columns)
+            update_columns = [col for col in corrected_data[0].keys() if
+                              col in valid_columns and col not in conflict_columns]
 
-            stmt = insert(model).values(corrected_data)
-            stmt = stmt.on_conflict_do_update(
-                index_elements=conflict_columns,
-                set_={col: stmt.excluded[col] for col in update_columns}
-            )
+            max_params = 32767
+            num_columns = len(corrected_data[0])
+            chunk_size = max(1, max_params // num_columns)
 
-            if not self.session.in_transaction():
-                async with self.session.begin():
+            total_inserted = 0
+
+            for chunk in self._chunked(corrected_data, chunk_size):
+                stmt = insert(model).values(chunk)
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=conflict_columns,
+                    set_={col: stmt.excluded[col] for col in update_columns}
+                )
+
+                if not self.session.in_transaction():
+                    async with self.session.begin():
+                        await self.session.execute(stmt)
+                        await self.session.commit()
+                else:
                     await self.session.execute(stmt)
                     await self.session.commit()
-            else:
-                await self.session.execute(stmt)
-                await self.session.commit()
 
-            logger.info(f"Successfully saved {len(data)} records to {model.__name__}")
+                total_inserted += len(chunk)
+
+            logger.info(f"✅ Successfully saved {total_inserted} records to {model.__name__}")
         except Exception as e:
             logger.exception(f"❌ Error while saving to {model.__name__}: {e}")
             raise
