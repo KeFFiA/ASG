@@ -6,9 +6,9 @@ from typing import Type, Any
 
 import aiohttp
 from dotenv import load_dotenv
-from sqlalchemy import MetaData
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from Utills.Logger import logger
 from enums import ICAOEndpoints
 
@@ -19,12 +19,12 @@ ssl_context.verify_mode = ssl.CERT_NONE
 load_dotenv()
 
 
-class ICAOApiClient:
-    def __init__(self, session: AsyncSession):
+class ApiClient:
+    def __init__(self, session: AsyncSession, headers: dict, api_key: str, base_url: str):
         self.session = session
-        self.headers = {"Accept": "application/json"}
-        self.ICAO_API_KEY = os.getenv("ICAO_API_KEY")
-        self.BASE_URL = "https://applications.icao.int/dataservices/api"
+        self.headers = headers
+        self.ICAO_API_KEY = api_key
+        self.BASE_URL = base_url
 
     async def _fetch(self, endpoint: str, params: dict) -> list[dict]:
         params["api_key"] = self.ICAO_API_KEY
@@ -65,6 +65,8 @@ class ICAOApiClient:
                     corrected_key = key.strip().replace(" ", "").replace(",", "").replace("-", "")
                     if value == "":
                         value = None
+                    if value == "TRUE":
+                        value = True
                     if isinstance(value, (dict, list)):
                         try:
                             value = json.dumps(value, ensure_ascii=False)
@@ -113,7 +115,7 @@ class ICAOApiClient:
             logger.exception(f"❌ Error while saving to {model.__name__}: {e}")
             raise
 
-    async def fetch_and_store(self, endpoint: ICAOEndpoints, model: Type[Any], conflict_enums: Enum, **kwargs):
+    async def fetch_and_store(self, endpoint: Enum, model: Type[Any], conflict_enums: Enum, **kwargs):
         logger.debug(f"Fetching and storing data for endpoint: {endpoint}")
         data = await self._fetch(endpoint.value, kwargs)
         await self._save_to_db(data, model, conflict_enums)

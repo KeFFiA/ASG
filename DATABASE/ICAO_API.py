@@ -1,9 +1,11 @@
 import asyncio
 import os
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy import MetaData, Column, Integer, String, Float, text, Numeric, UniqueConstraint, Boolean
-from sqlalchemy.orm import declarative_base
+
 from dotenv import load_dotenv
+from sqlalchemy import MetaData, Column, Integer, String, Float, UniqueConstraint, Boolean
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.orm import declarative_base
+
 from Utills.Logger import logger
 
 load_dotenv()
@@ -378,6 +380,7 @@ class ICAOMemberState(Base):
         ),
     )
 
+
 class StateOfRegistry(Base):
     __tablename__ = "state_of_registries"
 
@@ -427,6 +430,9 @@ class ASIAPPrioritization(Base):
     airnavigation_margin = Column(Float)
     isSSC = Column(Boolean)
     SSC_area = Column(String)
+    operations_index = Column(Float)
+    support_index = Column(Float)
+    airnavigation_index = Column(Float)
 
     __table_args__ = (
         UniqueConstraint(
@@ -506,14 +512,15 @@ class AerodromeStatistic(Base):
     Year = Column(Integer)
     Departures = Column(Integer)
     Int_departures = Column(Integer)
-    All_active_aerodromes = Column(Integer)
-    Int_active_aerodromes = Column(Integer)
+    All_Active_Aerodromes = Column(Integer)
+    Int_Active_Aerodromes = Column(Integer)
+    Int_Departures = Column(Integer)
 
     __table_args__ = (
         UniqueConstraint(
             'State',
             name="uq_aerodrome_statistic_unique"
-        )
+        ),
     )
 
 
@@ -525,15 +532,15 @@ class OperatorStatistic(Base):
     Name = Column(String)
     Year = Column(Integer)
     Flights = Column(Integer)
-    Int_flights = Column(Integer)
-    All_active_operators = Column(Integer)
-    Int_active_operators = Column(Integer)
+    Int_Flights = Column(Integer)
+    All_Active_Operators = Column(Integer)
+    Int_Active_Operators = Column(Integer)
 
     __table_args__ = (
         UniqueConstraint(
             'State',
             name="uq_operator_statistic_unique"
-        )
+        ),
     )
 
 
@@ -541,28 +548,42 @@ class Connection(Base):
     __tablename__ = "connections"
 
     id = Column(Integer, primary_key=True)
-    state_a = Column(String(3), index=True)
-    name_a = Column(String)
-    state_b = Column(String(3))
-    name_b = Column(String)
-    year = Column(Integer)
-    flights = Column(Integer)
-    state_a_carrier_flights = Column(Integer)
-    state_b_carrier_flights = Column(Integer)
-    other_state_carrier_flights = Column(Integer)
+    State_A = Column(String(3), index=True)
+    Name_A = Column(String)
+    State_B = Column(String(3))
+    Name_B = Column(String)
+    Year = Column(Integer)
+    Flights = Column(Integer)
+    State_A_Carrier_Flights = Column(Integer)
+    State_B_Carrier_Flights = Column(Integer)
+    Other_State_Carrier_Flights = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'State_A', 'State_B', 'Year',
+            name="uq_connections_statistic_unique"
+        ),
+    )
 
 
 class StateTrafficStatistic(Base):
     __tablename__ = "state_traffic_statistics"
 
     id = Column(Integer, primary_key=True)
-    state = Column(String(3), index=True)
-    name = Column(String)
-    year = Column(Integer)
-    departures = Column(Integer)
-    domestic = Column(Integer)
-    international = Column(Integer)
-    flagcarrier_flights = Column(Integer)
+    State = Column(String(3), index=True)
+    Name = Column(String)
+    Year = Column(Integer)
+    Departures = Column(Integer)
+    Domestic = Column(Integer)
+    International = Column(Integer)
+    FlagCarrier_Flights = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'State', 'Year',
+            name="uq_state_traffic_statistic_unique"
+        ),
+    )
 
 
 class CAAHR(Base):
@@ -573,13 +594,13 @@ class CAAHR(Base):
     iso_3_code = Column(String(3), index=True)
     latitude = Column(Float)
     longitude = Column(Float)
-    un_numerical_code = Column(String)
-    un_region = Column(String)
-    un_state_name = Column(String)
-    un_state_name_html = Column(String)
+    UN_numerical_code = Column(String)
+    UN_region = Column(String)
+    UN_state_name = Column(String)
+    UN_state_name_html = Column(String)
     ro = Column(String)
-    aeroplane_cat_ops = Column(Integer)
-    aeroplane_used_cat = Column(Integer)
+    aeroplane_CAT_ops = Column(Integer)
+    aeroplane_used_CAT = Column(Integer)
     approved_maintenance = Column(Integer)
     ifr_aerodromes = Column(Integer)
     atc_training_org = Column(Integer)
@@ -594,30 +615,14 @@ class CAAHR(Base):
     total_ans = Column(Integer)
     total_pel = Column(Integer)
     total_ops = Column(Integer)
-    is_original_survey = Column(Boolean)
+    isOriginalSurvey = Column(Boolean)
 
-
-class SafetyPartnerProgram(Base):
-    __tablename__ = "safety_partner_programs"
-
-    id = Column(Integer, primary_key=True)
-    state = Column(String(3), index=True)
-    name = Column(String)
-    iosa_operators = Column(Integer)
-    is_faa_cat2 = Column(Boolean)
-    has_eu_restrictions = Column(Boolean)
-    faa_update = Column(String)
-    eu_update = Column(String)
-
-
-class SignificantSafetyConcern(Base):
-    __tablename__ = "significant_safety_concerns"
-
-    id = Column(Integer, primary_key=True)
-    state = Column(String(3), index=True)
-    name = Column(String)
-    year = Column(Integer)
-    area = Column(String)
+    __table_args__ = (
+        UniqueConstraint(
+            'UN_state_name',
+            name="uq_caahr_unique"
+        ),
+    )
 
 
 async def check_and_create_table_api():
