@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from DATABASE import *
+from DATABASE.ICAO import *
 from client import ApiClient
 from enums import ICAOEndpoints, DatabaseUniqueColumns, manufacturer_list
 

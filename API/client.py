@@ -20,16 +20,17 @@ load_dotenv()
 
 
 class ApiClient:
-    def __init__(self, session: AsyncSession, headers: dict, api_key: str, base_url: str):
+    def __init__(self, session: AsyncSession, headers: dict, base_url: str, api_key: str = None):
         self.session = session
         self.headers = headers
-        self.ICAO_API_KEY = api_key
+        self.API_KEY = api_key
         self.BASE_URL = base_url
 
     async def _fetch(self, endpoint: str, params: dict) -> list[dict]:
-        params["api_key"] = self.ICAO_API_KEY
-        params["format"] = "json"
-        params.pop("callback", None)
+        if self.API_KEY is not None:
+            params["api_key"] = self.API_KEY
+            params["format"] = "json"
+            params.pop("callback", None)
 
         url = f"{self.BASE_URL}/{endpoint}"
         logger.info(f"Sending request to: {url} with params: {params}")
