@@ -1,2 +1,2 @@
-from ICAO_API import *
-from ICAO import *
+from DATABASE.ICAO.ICAO_API import *
+from DATABASE.ICAO.ICAO import *

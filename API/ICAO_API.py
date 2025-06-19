@@ -13,6 +13,7 @@ async_session = async_sessionmaker(
     expire_on_commit=False,
 )
 
+
 year_list = [2021, 2022, 2023, 2024, 2025]
 RO = ["APAC", "MID", "EUR/NAT", "NACC", "SAM", "WACAF", "ESAF"]
 HEADERS = {"Accept": "application/json"}

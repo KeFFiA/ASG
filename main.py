@@ -2,13 +2,17 @@ import asyncio
 import os
 from datetime import datetime
 
-from DATABASE import check_and_create_table
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine, AsyncSession
+from sqlalchemy.orm import Session
+
+from DATABASE import check_and_create_table, ASGPassengersTable
 from DataProcessor import DataProcessor, FinancialDataProcessor
 from FindPath import Finder
 from dotenv import load_dotenv
 from Utills.Logger import logger
 from Utills import StateManager as state
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query, Depends
 import asyncpg
 
 load_dotenv()
@@ -186,6 +190,53 @@ async def run_finances():
     finally:
         state.update_processing(False)
         state.update_start_time(None)
+
+
+engine = create_async_engine(os.getenv("DATABASE_URL"), echo=False)
+
+
+async_session = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+
+async def get_db():
+    db = async_session()
+    try:
+        yield db
+    finally:
+        await db.close()
+
+
+@app.get("/api/1")
+async def api_1(limit: int = Query(10, gt=0), db: AsyncSession = Depends(get_db)):
+    stmt = select(ASGPassengersTable).limit(limit)
+    result = await db.execute(stmt)
+    data = result.scalars().all()
+    return [
+        {
+            "id": record.id,
+            "from_city": record.from_city,
+            "to_city": record.to_city,
+            "year": record.year,
+            "air_carrier": record.air_carrier,
+            "aircraft_type": record.aircraft_type,
+            "from_state": record.from_state,
+            "to_state": record.to_state,
+            "from_territory": record.from_territory,
+            "to_territory": record.to_territory,
+            "prt": record.prt,
+            "number_of_flights": record.number_of_flights,
+            "seats_available": record.seats_available,
+            "average_seats_available": record.average_seats_available,
+            "passenger_occupancy_factor": record.passenger_occupancy_factor,
+            "average_payload_capacity": record.average_payload_capacity,
+         }
+        for record in data
+    ]
+
 
 
 if __name__ == "__main__":
