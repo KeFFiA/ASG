@@ -66,14 +66,19 @@ class ApiClient:
                     corrected_key = key.strip().replace(" ", "").replace(",", "").replace("-", "")
                     if value == "":
                         value = None
-                    if value == "TRUE":
+                    if value == "TRUE" or value == "true":
                         value = True
                     if isinstance(value, (dict, list)):
                         try:
                             value = json.dumps(value, ensure_ascii=False)
                         except Exception as json_error:
                             logger.warning(f"⚠️ Failed to convert {corrected_key} to JSON: {json_error}")
+                    if corrected_key in (
+                    "countryName", "countryCode", "airportName", "cityName", "airportCode", "geometry"):
+                        if value is not None:
+                            value = str(value)
                     corrected_item[corrected_key] = value
+
                 corrected_data.append(corrected_item)
 
             all_keys = set()
