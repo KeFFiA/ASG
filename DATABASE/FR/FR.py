@@ -14,7 +14,7 @@ Base = declarative_base()
 
 
 class FlightSummary(Base):
-    __tablename__ = 'flight_summary2'
+    __tablename__ = 'flight_summary'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     fr24_id = Column(String)
@@ -42,6 +42,33 @@ class FlightSummary(Base):
     first_seen = Column(DateTime)
     last_seen = Column(DateTime)
     flight_ended = Column(Boolean)
+
+
+class LivePositions(Base):
+    __tablename__ = 'live_positions'
+    fr24_id = Column(String, primary_key=True)
+    flight = Column(String)
+    callsign = Column(String)
+    lat = Column(Float)
+    lon = Column(Float)
+    track = Column(Integer)
+    alt = Column(Float)
+    gspeed = Column(Float)
+    vspeed = Column(Float)
+    squawk = Column(Integer)
+    timestamp = Column(DateTime)
+    source = Column(String)
+    hex = Column(String)
+    type = Column(String)
+    reg = Column(String)
+    orig_icao = Column(String)
+    orig_iata = Column(String)
+    dest_icao = Column(String)
+    dest_iata = Column(String)
+    operating_as = Column(String)
+    painted_as = Column(String)
+    eta = Column(DateTime)
+
 
 
 async def check_and_create_table():
