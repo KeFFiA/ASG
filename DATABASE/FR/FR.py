@@ -55,7 +55,7 @@ class LivePositions(Base):
     alt = Column(Float)
     gspeed = Column(Float)
     vspeed = Column(Float)
-    squawk = Column(Integer)
+    squawk = Column(String)
     timestamp = Column(DateTime)
     source = Column(String)
     hex = Column(String)

@@ -19,7 +19,7 @@ async def fetch_date_range(
         csv_path: Optional[str] = None
 ) -> List[dict] | None:
     async with AsyncSessionLocal() as session:
-        print(f"📆 Range Processing: {range_from.date()} - {range_to.date()} | ICAO={icao} | REGS={regs}")
+        print(f"📆 Range Processing: {range_from} - {range_to} | ICAO={icao} | REGS={regs}")
         next_from = range_from
 
         processing_flights: List[dict] = []
@@ -151,7 +151,7 @@ async def fetch_all_ranges(
         icao: Optional[str] = None,
         registrations: Optional[List[str]] = None,
         storage_mode: str = "both",
-        csv_path: Optional[str] = f"flights_export_{datetime.strftime(datetime.now(), "%Y-%m-%d_%hh:mm")}.csv"
+        csv_path: Optional[str] = f"output/flights_{datetime.strftime(datetime.now(), '%Y%m%d_%H%M')}.csv"
 ):
     start_dt = parse_date_or_datetime(start_date)
     end_dt = parse_date_or_datetime(end_date)
@@ -186,6 +186,7 @@ async def fetch_all_ranges(
                     storage_mode=storage_mode,
                     csv_path=csv_path
                 ))
+        return flights
 
 
 if __name__ == "__main__":
